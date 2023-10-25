@@ -1,4 +1,5 @@
 from src import opcodes
+from typing import List, NoReturn
 from enum import Enum
 
 
@@ -50,7 +51,7 @@ class Operand:
 
 
 class Instruction:
-    def __init__(self, line):
+    def __init__(self, line: str):
         self.__content = line
         tmp_list = line.split()
         self.__address = tmp_list[0]
@@ -114,16 +115,17 @@ class Instruction:
                     self.src1 = self.src2
                     self.src2 = None
 
-    def is_ret(self):
+
+    def is_ret(self) -> bool:
         return self.__is_ret
 
-    def is_jump(self):
+    def is_jump(self) -> bool:
         return self.__is_jump
 
-    def is_branch(self):
+    def is_branch(self) -> bool:
         return self.__is_branch
 
-    def is_store_to_stack(self, byte=8) -> bool:
+    def is_store_to_stack(self, byte: int = 8) -> bool:
         if self.code is None:
             return False
 
@@ -138,19 +140,20 @@ class Instruction:
         else:
             raise ValueError(f"Unsupported store instruction {self.code}")
 
-    def get_arguments(self):
+
+    def get_arguments(self) -> List[str]:
         return self.__arguments
 
-    def get_address(self):
+    def get_address(self) -> str:
         return self.__address
 
-    def get_address_int(self):
+    def get_address_int(self) -> int:
         return int(self.__address.strip(':'), 16)
 
-    def get_jump_target(self):
+    def get_jump_target(self) -> str:
         return self.__jump_target
 
-    def get_label(self):
+    def get_label(self) -> str:
         return self.__label
 
     def get_dest_name(self) -> str:
@@ -165,11 +168,11 @@ class Instruction:
         reg = self.src2.value
         return reg if "(" not in reg else reg[reg.index('(') + 1: reg.index(')')]
 
-    def set_jump_target(self, target):
+    def set_jump_target(self, target: str) -> NoReturn:
         self.__jump_target = target
 
-    def set_label(self, label):
+    def set_label(self, label: str) -> NoReturn:
         self.__label = label
 
-    def __str__(self):
+    def __str__(self) -> NoReturn:
         return self.__content

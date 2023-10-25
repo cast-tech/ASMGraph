@@ -4,7 +4,8 @@ import os
 import argparse
 import subprocess
 from alive_progress import alive_bar
-
+from argparse import Namespace
+from typing import Dict, NoReturn
 from src.asm_parser import parse_asm_file
 from src.collect_parser import CollectFileParser
 from src.opcodes import MAX_FUNCTION_NAME_LENGTH
@@ -17,7 +18,7 @@ OUT_DIR = os.path.join(CUR_DIR, "output")
 XLSX_SINGLETONS_FILE_NAME = "singletons.xlsx"
 
 
-def disassemble_bin_to_asm(binary, objdump_path):
+def disassemble_bin_to_asm(binary: str, objdump_path: str) -> str:
     print("Disassembling binary to asm.")
     file_path = os.path.join(OUT_DIR, os.path.basename(binary) + ".asm")
     try:
@@ -30,7 +31,8 @@ def disassemble_bin_to_asm(binary, objdump_path):
     return file_path
 
 
-def load_funcs(asm_path, func_name=None):
+def load_funcs(asm_path: str, func_name: str = None) -> Dict[str, str]:
+
     assert os.path.exists(asm_path), f"Cannot find asm file: {asm_path}"
 
     with open(asm_path, "r") as asm:
@@ -69,7 +71,7 @@ def load_funcs(asm_path, func_name=None):
     return asm_funcs
 
 
-def parse_arguments():
+def parse_arguments() -> Namespace:
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     group = parser.add_mutually_exclusive_group(required=True)
 
@@ -96,8 +98,13 @@ def parse_arguments():
     return parsed_args
 
 
-def process_function(args, function_name, func_content, collect_parser,
-                     xlsx_for_singletons, xlsx_for_fusions):
+def process_function(args: Namespace,
+                     function_name: str,
+                     func_content: str,
+                     collect_parser: CollectFileParser,
+                     xlsx_for_singletons: XLSXWriter,
+                     xlsx_for_fusions: XLSXWriter) -> NoReturn:
+
     if len(function_name) > MAX_FUNCTION_NAME_LENGTH:
         function_name = function_name[-MAX_FUNCTION_NAME_LENGTH:]
 
@@ -129,13 +136,13 @@ def process_function(args, function_name, func_content, collect_parser,
     if args.fusion:
         for node in graph.nodes:
             count = node.get_execution_count()
-            if args.collect and (count == 'empty' or int(count) < args.min_exec_count):
+            if args.collect and (count == 0 or int(count) < args.min_exec_count):
                 continue
 
             process_basic_block(node, function_name, xlsx_for_fusions)
 
 
-def main(args):
+def main(args: Namespace):
     global OUT_DIR
     OUT_DIR = args.output
 
