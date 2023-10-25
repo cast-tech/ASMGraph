@@ -94,6 +94,9 @@ This option is permanent and done in any case.
 After this, the output directory will contain my_function.asm and my_function.dot files. \
 For function body and visualization files, respectively.
 
+<img src="./images/main_function_asm.jpg" title="Function asm" style="display: inline-block; margin: 0 auto; max-width: 700px">
+<img src="./images/main_function_dot.jpg" title="Function dot" style="display: inline-block; margin: 0 auto; max-width: 600px">
+
 Unfortunately, this option may slow down execution performance. \
 We set a time limit for each function in 10 minutes.
 
@@ -108,7 +111,7 @@ BBs that did not execute at all will be colored in blue and most executed in dar
 
 ---
 
-5. Io run fusion checkers you need to run the following command
+5. To run fusion checkers you need to run the following command
 
 ```commandline
 ./asm_graph.py -a ./path/to/test.asm --fusion -o output
@@ -141,10 +144,9 @@ For example, to check only BBs which have at least 5M execution use this command
 ```
 
 
-# How to compare two compiler versions
+# Comparing Compiler Versions
 
-We are providing a small script that will help with that issue.\
-`evaluate_versions.py` script intends to compare the performance of two compilers.
+To compare the performance of two compiler versions using the `evaluate_versions.py` script:
 
 For example, you have *collect files gathered in `dir_1` and `dir_2` directories, \
 respectively for C1 and C2 compilers. To compare them just run the following command line.
@@ -153,9 +155,7 @@ respectively for C1 and C2 compilers. To compare them just run the following com
 ./evaluate_versions.py --first-collects-dir ./dir_1 --second-collects-dir ./dir_2
 ```
 
-In the current working directory will be created `evaluation_result.xlsx` sheet.\
-That contains the comparison of each *collect file separated sheet by sheet.\
-Name of *collect files such important, the script tries to compare only collects which have the same name.\n
+In the current working directory, the `evaluation_result.xlsx` sheet will be created, containing comparisons of each collect file.
+Name of *collect files such important, the script tries to compare only collects which have the same name.
 
-Besides, comparing by collect file, the script provides also general comparison (sheet name `general_diff`).\
-That is the difference of while evaluation.
+Please note that the script performs comparisons based on collect file names. Additionally, it provides a general comparison sheet (general_diff) to show the overall differences.
