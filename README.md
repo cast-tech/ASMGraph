@@ -7,7 +7,7 @@
 ASMGraph is a simple framework which tends to help compiler developers who work in RISC-V architecture. \
 This framework intends to:
 
-* Visualize functions assembly code through xdot
+* Visualize functions assembly code through dot graphs
 * Highlight executed and the hottest BBs in each function
 * Extract singleton BBs from the whole function
 * Find several instruction fusion cases like:
@@ -19,12 +19,22 @@ This framework intends to:
   * Double address and constant formation
 * Computes executed instructions count like `llvm-mca`
 
+The instrument can easily be integrated to CI/CD systems, to evaluate changes which you did.
+
+**Note**: To get whole power of the instrument you need Qemu collect plugin.  
 
 ---
 
-## Installing
+## Installing and requirements
 
-Install the libraries from **requirements.txt**
+
+apt-get install python3
+
+To use instrument you need to install
+* python3
+* dot
+
+Install the python libraries from **requirements.txt**
 
 ```
 pip install -r requirements.txt
@@ -108,7 +118,7 @@ BBs that did not execute at all will be colored in blue and most executed in dar
 
 ---
 
-5. Io run fusion checkers you need to run the following command
+5. To run fusion checkers you need to run the following command
 
 ```commandline
 ./asm_graph.py -a ./path/to/test.asm --fusion -o output
@@ -140,8 +150,39 @@ For example, to check only BBs which have at least 5M execution use this command
 ./asm_graph.py -a ./path/to/test.asm -s -o output
 ```
 
+# Real example
+Suppose we have the following code
 
-# How to compare two compiler versions
+```C
+int main() {
+  int n, sum = 0;
+  scanf ("%d", &n);
+  for (int i = 0; i < n; i++) {
+     sum += i * 2;
+  }
+
+  printf("Sum is %d\n", sum);
+
+  return 0;
+}
+```
+
+Our goal is to understand / highlight which part of the code is most executed fragment. \
+For that purpose we compile, run and pass some inputs to our target program. \
+After execution we will get Qemu collect file. \
+Next we need to pass target binary and collect file to ASMGraphNow with the following command line.
+
+```commandline
+./asm_graph.py -b ./path/to/binary -d /path/to/objdump -c ./path/to/target.collect -f main --dot -o output
+```
+After executing the instrument we can see visualization like this one.
+
+<img src="./images/main.dot.png" title="Main dot" style="display: inline-block; margin: 0 auto; max-width: 600px">
+
+As we can see B3 is the most executed (hottest) basic block and B1 was not executed at all. \
+The cost or dynamic instruction count of B3 has *1497*.
+
+# How to evaluate changes?
 
 We are providing a small script that will help with that issue.\
 `evaluate_versions.py` script intends to compare the performance of two compilers.
@@ -154,8 +195,8 @@ respectively for C1 and C2 compilers. To compare them just run the following com
 ```
 
 In the current working directory will be created `evaluation_result.xlsx` sheet.\
-That contains the comparison of each *collect file separated sheet by sheet.\
-Name of *collect files such important, the script tries to compare only collects which have the same name.\n
+That contains the comparison of each `*collect` file separated sheet by sheet.\
+Name of `*collect` files such important, the script tries to compare only collects which have the same name.
 
-Besides, comparing by collect file, the script provides also general comparison (sheet name `general_diff`).\
-That is the difference of while evaluation.
+Please note that the script performs comparisons based on collect file names. \
+Additionally, it provides a general comparison sheet (*general_diff*) to show the overall differences.
