@@ -39,13 +39,7 @@ sudo apt-get install python3 python3-pip xdot
 
 To install the python libraries from **requirements.txt**
 
-```
-pip install -r requirements.txt
-```
-
-or
-
-```
+``` commandline
 pip3 install -r requirements.txt
 ```
 
@@ -180,7 +174,7 @@ Next we need to pass target binary and collect file to ASMGraphNow with the foll
 ```
 After executing the instrument we can see visualization like this one.
 
-<img src="./images/main.dot.png" title="Main dot" style="display: inline-block; margin: 0 auto; max-width: 600px">
+<img alt="main.dot" src="./images/main.dot.png" title="Main dot" style="display: inline-block; margin: 0 auto; max-width: 600px">
 
 As we can see B3 is the most executed (hottest) basic block and B1 was not executed at all. \
 The cost or dynamic instruction count of B3 has *1497*.
