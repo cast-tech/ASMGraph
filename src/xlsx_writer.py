@@ -1,5 +1,6 @@
 import openpyxl
 from openpyxl.styles import Font, Alignment, DEFAULT_FONT
+from .graph import Node, FlowGraph, Dict, List, NoReturn
 
 DEFAULT_FONT.name = "Arial"
 
@@ -16,13 +17,13 @@ except Exception as e:
 
 
 class XLSXWriter:
-    def __init__(self, xlsx_file):
+    def __init__(self, xlsx_file: str):
         self.__xlsx_file = xlsx_file
         self.__workbook = openpyxl.Workbook()
         self.__worksheet = self.__workbook.active
         self.__worksheet.__rows = []
 
-    def create_asm_sheet(self):
+    def create_asm_sheet(self) -> NoReturn:
         self.__worksheet.title = "AsmSheet"
 
         self.__worksheet["A1"] = "Function Name"
@@ -39,7 +40,7 @@ class XLSXWriter:
         for cell in ['A1', 'B1', 'C1', 'D1']:
             self.__worksheet[cell].font = bold_font
 
-    def create_checkers_sheet(self, title):
+    def create_checkers_sheet(self, title: str) -> NoReturn:
         if title in self.__workbook.get_sheet_names():
             return
 
@@ -72,13 +73,18 @@ class XLSXWriter:
 
         self.__workbook.save(self.__xlsx_file)
 
-    def append_checker_result(self, title, func_name, node, fusions, highlight_fuse=False):
+    def append_checker_result(self, title: str,
+                              func_name: str,
+                              node: Node,
+                              fusions: List[Dict],
+                              highlight_fuse=False) -> NoReturn:
+
         self.create_checkers_sheet(title)
         self.__worksheet = self.__workbook.get_sheet_by_name(title)
         exec_count = node.get_execution_count()
 
-        if not exec_count or exec_count == 'empty':
-            exec_count = "0"
+        if not exec_count or exec_count == 0:
+            exec_count = 0
 
         for current_fuse in fusions:
             for key, value in current_fuse.items():
@@ -106,7 +112,7 @@ class XLSXWriter:
                 row = [func_name, content, input_out, int(exec_count), insn_profit]
                 self.__worksheet.__rows.append(row)
 
-    def dump(self, row_id):
+    def dump(self, row_id: int) -> NoReturn:
         for worksheet in self.__workbook.get_sheet_names():
             self.__worksheet = self.__workbook.get_sheet_by_name(worksheet)
             self.__worksheet.__rows.sort(key=lambda k: k[row_id], reverse=True)
@@ -120,14 +126,15 @@ class XLSXWriter:
 
         self.__workbook.save(self.__xlsx_file)
 
-    def append(self, graph, func_name):
+    def append(self, graph: FlowGraph,
+               func_name: str) -> NoReturn:
         for node in graph.nodes:
             if node.is_singleton:
                 content = node.get_inner_content().replace("\l\t", "\n")
                 bb_address_label = f"{node.get_address().strip(':')} " \
                                    f"({node.get_label().strip(':')})"
                 exec_count = node.get_execution_count()
-                if not exec_count or exec_count == 'empty':
-                    exec_count = "0"
-                row = [func_name, bb_address_label, content, int(exec_count)]
+                if not exec_count or exec_count == 0:
+                    exec_count = 0
+                row = [func_name, bb_address_label, content, exec_count]
                 self.__worksheet.__rows.append(row)

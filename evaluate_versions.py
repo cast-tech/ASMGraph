@@ -4,6 +4,7 @@ import os
 import glob
 import argparse
 import xlsxwriter
+from typing import Dict, List, NoReturn
 
 FIRST = "FIRST"
 SECOND = "SECOND"
@@ -39,7 +40,7 @@ def parse_args():
     return args
 
 
-def summary_blocks(collect_file, dyn_inst_count):
+def summary_blocks(collect_file: str, dyn_inst_count: int) -> [Dict[str, dict], int]:
     summary = {}
 
     with open(collect_file, "r") as block_fp:
@@ -81,7 +82,7 @@ def summary_blocks(collect_file, dyn_inst_count):
     return summary, dyn_inst_count
 
 
-def compare_blocks(origin_hot_blocks, cmp_hot_blocks):
+def compare_blocks(origin_hot_blocks, cmp_hot_blocks) -> Dict[str, List]:
     result = {}
     for orig_func_name, orig_exec_count in origin_hot_blocks.items():
         same_cmp_block = [cmp_func_name for cmp_func_name, cmp_exec_count
@@ -93,7 +94,9 @@ def compare_blocks(origin_hot_blocks, cmp_hot_blocks):
     return result
 
 
-def create_bench_hot_blocks_compare_sheet(workbook, file_name, blocks):
+def create_bench_hot_blocks_compare_sheet(workbook: xlsxwriter.Workbook,
+                                          file_name: str,
+                                          blocks: Dict[str, List]):
     bench_sheet = workbook.add_worksheet(file_name)
     row = 0
     col = 0
@@ -171,8 +174,11 @@ def create_bench_hot_blocks_compare_sheet(workbook, file_name, blocks):
     bench_sheet.write(row, col + 5, first_dyn_inst_count - second_dyn_inst_count, bold)
 
 
-def create_dyn_inst_count_cmp_sheet(workbook, bench_name, first_dyn_inst_count,
-                                    second_dyn_inst_count, general_diff_row):
+def create_dyn_inst_count_cmp_sheet(workbook: xlsxwriter.Workbook,
+                                    bench_name: str,
+                                    first_dyn_inst_count: int,
+                                    second_dyn_inst_count: int,
+                                    general_diff_row: int) -> NoReturn:
     column = 0
     bold = workbook.add_format({'bold': True})
     general_diff = workbook.get_worksheet_by_name("general_diff")

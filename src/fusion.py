@@ -2,10 +2,9 @@
 # Each checker should get as an argument BB and should return (Instr_1, Instr_2) when BB is eligible and None otherwise.
 
 import re
-from typing import List, NoReturn
 from .graph import Node
 from .opcodes import loads, stores, jump_instructions
-from .instruction import Instruction, Operand
+from .instruction import Instruction, Operand, List, NoReturn
 
 
 def check_extend(basic_block: Node, n: int) -> List[dict]:
@@ -267,6 +266,8 @@ def is_store_to_stack(address: str) -> bool:
 def process_basic_block(basic_block: Node, function_name: str, xlsx_for_fusions) -> NoReturn:
 
     fuse = check_extend(basic_block, 48)
+    print("oooooo")
+    xlsx_for_fusions.append_checker_result("ppp", function_name, basic_block, fuse)
     if fuse:
         title = "Extend HI to DI"
         xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)

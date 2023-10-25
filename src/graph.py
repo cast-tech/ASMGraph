@@ -1,13 +1,15 @@
 import signal
 
 import pydot
-from typing import List
+from typing import List, Dict, NoReturn, Any
 from .opcodes import loads, stores, branch_instructions, jump_instructions
 from .instruction import Instruction
 
 
 class Node:
-    def __init__(self, label, start_address, instruction_list: List[Instruction]):
+    def __init__(self, label: str,
+                 start_address: str,
+                 instruction_list: List[Instruction]):
         # need for iteration
         self.__index = 0
         self.__label = label
@@ -35,7 +37,7 @@ class Node:
 
         self.__dot_Node = None
 
-    def create_dataflow_graph(self):
+    def create_dataflow_graph(self) -> NoReturn:
         for selected_ins_ind in range(0, len(self.__instr_list)):
 
             if self.__instr_list[selected_ins_ind].is_ret() or \
@@ -44,7 +46,7 @@ class Node:
 
             self.search_dependencies(selected_ins_ind)
 
-    def search_dependencies(self, selected_ins_ind):
+    def search_dependencies(self, selected_ins_ind: int) -> NoReturn:
         for current_ind in range(selected_ins_ind + 1, len(self.__instr_list)):
             if not self.__instr_list[current_ind].dest:
                 continue
@@ -52,7 +54,7 @@ class Node:
             if self.make_deps(selected_ins_ind, current_ind):
                 break
 
-    def make_deps(self, selected_ins_ind, next_ins_ind):
+    def make_deps(self, selected_ins_ind: int, next_ins_ind: int) -> bool:
         selected_ins = self.__instr_list[selected_ins_ind]
         next_ins = self.__instr_list[next_ins_ind]
 
@@ -79,37 +81,37 @@ class Node:
 
         return False
 
-    def get_label(self):
+    def get_label(self) -> str:
         return self.__label
 
     def get_instr_list(self) -> List[Instruction]:
         return self.__instr_list
 
-    def get_address(self):
+    def get_address(self) -> str:
         return self.__start_address
 
-    def get_inner_content(self):
+    def get_inner_content(self) -> str:
         return self.__content
 
-    def ends_with_ret_inst(self):
+    def ends_with_ret_inst(self) -> bool:
         return self.__ret_inst
 
-    def ends_with_br_inst(self):
+    def ends_with_br_inst(self) -> bool:
         return self.__branch_inst
 
-    def get_jump_target(self):
+    def get_jump_target(self) -> str:
         return self.__jump_target
 
-    def set_usage_info(self, usage_info):
+    def set_usage_info(self, usage_info: int) -> NoReturn:
         self.__execution_count = usage_info
 
-    def get_execution_count(self):
+    def get_execution_count(self) -> int:
         return self.__execution_count
 
-    def set_color(self, color):
+    def set_color(self, color: str) -> NoReturn:
         self.__color = color
 
-    def has_singleton_inst(self):
+    def has_singleton_inst(self) -> bool:
         if len(self.__instr_list) == 1:
             opcode = self.get_inner_content().split()[1]
             jumps = jump_instructions + ['ret\\l', 'ret\l', 'ret\l\t']
@@ -119,13 +121,13 @@ class Node:
                 return True
         return False
 
-    def create_dot_node(self):
+    def create_dot_node(self) -> NoReturn:
         if self.__execution_count:
             content = f"{self.__label} # usage info: {self.__execution_count}\l\t{self.__content}\l"
             if self.is_singleton:
                 self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
                                              style="filled", shape="rect", color="limegreen")
-            elif self.__execution_count == "empty":
+            elif self.__execution_count:
                 self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
                                              style="filled", shape="rect", color="steelblue")
             else:
@@ -139,16 +141,16 @@ class Node:
             else:
                 self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3", style="filled", shape="rect")
 
-    def get_dot_node(self):
+    def get_dot_node(self) -> pydot.Node:
         return self.__dot_Node
 
-    def __eq__(self, other):
+    def __eq__(self, other: __init__) -> bool:
         return self.__label == other.get_label()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.__label, self.__start_address))
 
-    def __iter__(self):
+    def __iter__(self) -> __init__:
         self.__index = 0
         return self
 
@@ -159,27 +161,27 @@ class Node:
         self.__index += 1
         return value
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> Instruction:
         return self.__instr_list[item]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.__instr_list)
 
 
 class Edge:
-    def __init__(self, src, dest):
+    def __init__(self, src: Node, dest: Node) -> NoReturn:
         self.__src = src
         self.__dest = dest
 
-    def get_source(self):
+    def get_source(self) -> Node:
         return self.__src
 
-    def get_destination(self):
+    def get_destination(self) -> Node:
         return self.__dest
 
 
 class FlowGraph:
-    def __init__(self, asm_code):
+    def __init__(self, asm_code: Dict):
         self.__asm_code = asm_code
         self.nodes = []
         self.edges = {}
@@ -191,21 +193,21 @@ class FlowGraph:
         self.__color_type = "ylorrd9"
         self.__color_id = 9
 
-    def add_node(self, node):
+    def add_node(self, node: Node) -> NoReturn:
         if node in self.nodes:
             print("This node is already in graph!")
         else:
             self.nodes.append(node)
             self.edges[node] = []
 
-    def add_edge(self, edge):
+    def add_edge(self, edge: Edge) -> NoReturn:
         src = edge.get_source()
         dest = edge.get_destination()
         if not (src in self.nodes and dest in self.nodes):
             print("Can not create edge, no such nodes!")
         self.edges[src].append(dest)
 
-    def __set_nodes(self):
+    def __set_nodes(self) -> NoReturn:
         instruction_list = []
         start_addr = -1
         label = ""
@@ -221,7 +223,7 @@ class FlowGraph:
         if instruction_list:
             self.add_node(Node(label, start_addr, instruction_list))
 
-    def __set_edges(self):
+    def __set_edges(self) -> NoReturn:
         i = 0
         while i < len(self.nodes):
             jmp_target = self.nodes[i].get_jump_target()
@@ -240,56 +242,56 @@ class FlowGraph:
                 self.add_edge(Edge(self.nodes[i], self.nodes[i + 1]))
             i += 1
 
-    def get_bb_addresses(self):
+    def get_bb_addresses(self) -> List[str]:
         return [node.get_address() for node in self.nodes]
 
-    def set_nodes_usage_info(self):
+    def set_nodes_usage_info(self) -> NoReturn:
         for node in self.nodes:
             info = self.usage_info.get(node.get_address())
             if info:
                 node.set_usage_info(info)
             else:
                 # print(f"Cannot find usage info for bb with address: {node.get_address()} in collect file")
-                node.set_usage_info("empty")
+                node.set_usage_info(0)
 
-    def find_node_with_label(self, label):
+    def find_node_with_label(self, label: str) -> Any:
         for node in self.nodes:
             if node.get_label() == label:
                 return node
         return None
 
-    def __max_percent(self):
+    def __max_percent(self) -> int:
         max_p = 0
         for node in self.nodes:
             tmp_p = node.get_execution_count()
-            if tmp_p != "empty":
+            if tmp_p:
                 if max_p < int(tmp_p):
                     max_p = int(tmp_p)
         return max_p
 
-    def __set_color(self):
+    def __set_color(self) -> NoReturn:
         max_p = self.__max_percent()
         num = round(max_p / self.__color_id + 0.5)
         color_list = [num * (i + 1) for i in range(self.__color_id)]
 
         for node in self.nodes:
             tmp_p = node.get_execution_count()
-            if tmp_p != "empty":
+            if tmp_p:
                 for i, color in enumerate(color_list):
                     if int(tmp_p) <= color:
                         node.set_color(f"/{self.__color_type}/{i + 1}")
                         break
 
-    def __set_dot_nodes(self, graph: pydot.Dot):
+    def __set_dot_nodes(self, graph: pydot.Dot) -> NoReturn:
         for node in self.nodes:
             graph.add_node(node.get_dot_node())
 
-    def __set_dot_edges(self, graph: pydot.Dot):
+    def __set_dot_edges(self, graph: pydot.Dot) -> NoReturn:
         for src in self.nodes:
             for dest in self.edges[src]:
                 graph.add_edge(pydot.Edge(src=src.get_label(), dst=dest.get_label()))
 
-    def find_singleton_bbs(self):
+    def find_singleton_bbs(self) -> NoReturn:
         for src in self.nodes:
             for dest in self.edges[src]:
                 if dest.has_singleton_inst() and self.edges.get(dest):
@@ -297,7 +299,7 @@ class FlowGraph:
                         if dd in self.edges[src]:
                             dest.is_singleton = True
 
-    def draw_graph(self, out_dot_file):
+    def draw_graph(self, out_dot_file: str) -> NoReturn:
 
         # In some cases DOT lib hang over,
         # Processing each function should not be longer than 10 minutes
@@ -319,10 +321,10 @@ class FlowGraph:
         signal.alarm(0)
         signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
-    def __handler(self, signum, frame):
+    def __handler(self, signum: int, frame: Any) -> Exception:
         raise TimeoutError("Function time out!!!")
 
-    def __str__(self):
+    def __str__(self) -> str:
         result = ''
         for src in self.nodes:
             for dest in self.edges[src]:
