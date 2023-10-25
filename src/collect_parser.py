@@ -1,3 +1,7 @@
+# *******************************************************
+# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# *******************************************************
+
 import src.opcodes
 from typing import List, Dict, NoReturn
 
@@ -36,7 +40,6 @@ class CollectFileParser:
 
         self.__total_exec_count = 0
         self.__inst_group_dict = ValueDict()
-
 
     def parse_collect_file(self) -> NoReturn:
         per_inst_exec_count = 0

@@ -1,3 +1,7 @@
+# *******************************************************
+# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# *******************************************************
+
 import openpyxl
 from openpyxl.styles import Font, Alignment, DEFAULT_FONT
 from typing import List, Dict, NoReturn
@@ -80,7 +84,6 @@ class XLSXWriter:
                               node: Node,
                               fusions: List[Dict],
                               highlight_fuse=False) -> NoReturn:
-
         self.create_checkers_sheet(title)
         self.__worksheet = self.__workbook.get_sheet_by_name(title)
         exec_count = node.get_execution_count()
@@ -111,7 +114,6 @@ class XLSXWriter:
                 row = [func_name, content, input_out, int(exec_count), insn_profit]
                 self.__worksheet.__rows.append(row)
 
-
     def dump(self, row_id: int) -> NoReturn:
         for worksheet in self.__workbook.get_sheet_names():
             self.__worksheet = self.__workbook.get_sheet_by_name(worksheet)
@@ -126,10 +128,8 @@ class XLSXWriter:
 
         self.__workbook.save(self.__xlsx_file)
 
-
     def append(self, graph: FlowGraph,
                func_name: str) -> NoReturn:
-
         for node in graph.nodes:
             if node.is_singleton:
                 content = node.get_inner_content().replace("\l\t", "\n")

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# *******************************************************
+# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# *******************************************************
+
 import os
 import argparse
 import subprocess
