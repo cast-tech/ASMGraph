@@ -27,14 +27,17 @@ The instrument can easily be integrated to CI/CD systems, to evaluate changes wh
 
 ## Installing and requirements
 
-
-apt-get install python3
-
-To use instrument you need to install
+To use instrument you need to have
 * python3
+* pip3
 * dot
 
-Install the python libraries from **requirements.txt**
+Suggested command line to install them
+```commandline
+sudo apt-get install python3 python3-pip xdot
+```
+
+To install the python libraries from **requirements.txt**
 
 ```
 pip install -r requirements.txt

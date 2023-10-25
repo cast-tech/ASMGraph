@@ -1,3 +1,7 @@
+# *******************************************************
+# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# *******************************************************
+
 # This file tends to check instruction fusion on BB.
 # Each checker should get as an argument BB and should return (Instr_1, Instr_2) when BB is eligible and None otherwise.
 

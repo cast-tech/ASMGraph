@@ -1,9 +1,12 @@
+# *******************************************************
+# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# *******************************************************
+
 from src.instruction import Instruction
 from typing import Dict
 
 
 def add_labels(asm_code: Dict[str, Instruction]) -> Dict[str, Instruction]:
-
     count = 0
     instr_list = list(asm_code.values())
     length_of_lines = len(instr_list)
@@ -38,9 +41,7 @@ def add_labels(asm_code: Dict[str, Instruction]) -> Dict[str, Instruction]:
 
 
 def normalize(asm_code: Dict[str, Instruction]) -> Dict[str, Instruction]:
-
-    asm_code = add_labels(asm_code)
-    return asm_code
+    return add_labels(asm_code)
 
 
 def parse_asm_file(asm_file: str) -> Dict[str, Instruction]:

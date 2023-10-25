@@ -1,5 +1,8 @@
-import signal
+# *******************************************************
+# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# *******************************************************
 
+import signal
 import pydot
 from typing import List, Dict, NoReturn, Any
 from .opcodes import loads, stores, branch_instructions, jump_instructions
@@ -33,11 +36,8 @@ class Node:
 
         self.__execution_count = None
         self.__color = None
-
         self.is_singleton = False
-
         self.__dot_Node = None
-
 
     def create_dataflow_graph(self) -> NoReturn:
         for selected_ins_ind in range(0, len(self.__instr_list)):
@@ -48,16 +48,13 @@ class Node:
 
             self.search_dependencies(selected_ins_ind)
 
-
     def search_dependencies(self, selected_ins_ind: int) -> NoReturn:
-
         for current_ind in range(selected_ins_ind + 1, len(self.__instr_list)):
             if not self.__instr_list[current_ind].dest:
                 continue
 
             if self.make_deps(selected_ins_ind, current_ind):
                 break
-
 
     def make_deps(self, selected_ins_ind: int, next_ins_ind: int) -> bool:
         selected_ins = self.__instr_list[selected_ins_ind]
@@ -174,7 +171,7 @@ class Node:
 
 
 class Edge:
-    def __init__(self, src: Node, dest: Node) -> NoReturn:
+    def __init__(self, src: Node, dest: Node):
         self.__src = src
         self.__dest = dest
 
@@ -199,7 +196,6 @@ class FlowGraph:
         self.__color_id = 9
 
     def add_node(self, node: Node) -> NoReturn:
-
         if node in self.nodes:
             print("This node is already in graph!")
         else:
