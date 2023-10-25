@@ -7,6 +7,7 @@ from .instruction import Instruction
 
 
 class Node:
+
     def __init__(self, label: str,
                  start_address: str,
                  instruction_list: List[Instruction]):
@@ -37,6 +38,7 @@ class Node:
 
         self.__dot_Node = None
 
+
     def create_dataflow_graph(self) -> NoReturn:
         for selected_ins_ind in range(0, len(self.__instr_list)):
 
@@ -46,13 +48,16 @@ class Node:
 
             self.search_dependencies(selected_ins_ind)
 
+
     def search_dependencies(self, selected_ins_ind: int) -> NoReturn:
+
         for current_ind in range(selected_ins_ind + 1, len(self.__instr_list)):
             if not self.__instr_list[current_ind].dest:
                 continue
 
             if self.make_deps(selected_ins_ind, current_ind):
                 break
+
 
     def make_deps(self, selected_ins_ind: int, next_ins_ind: int) -> bool:
         selected_ins = self.__instr_list[selected_ins_ind]
@@ -127,7 +132,7 @@ class Node:
             if self.is_singleton:
                 self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
                                              style="filled", shape="rect", color="limegreen")
-            elif self.__execution_count:
+            elif self.__execution_count == 0:
                 self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
                                              style="filled", shape="rect", color="steelblue")
             else:
@@ -194,6 +199,7 @@ class FlowGraph:
         self.__color_id = 9
 
     def add_node(self, node: Node) -> NoReturn:
+
         if node in self.nodes:
             print("This node is already in graph!")
         else:
@@ -251,7 +257,6 @@ class FlowGraph:
             if info:
                 node.set_usage_info(info)
             else:
-                # print(f"Cannot find usage info for bb with address: {node.get_address()} in collect file")
                 node.set_usage_info(0)
 
     def find_node_with_label(self, label: str) -> Any:
@@ -300,7 +305,6 @@ class FlowGraph:
                             dest.is_singleton = True
 
     def draw_graph(self, out_dot_file: str) -> NoReturn:
-
         # In some cases DOT lib hang over,
         # Processing each function should not be longer than 10 minutes
         signal.signal(signal.SIGALRM, self.__handler)
@@ -321,10 +325,10 @@ class FlowGraph:
         signal.alarm(0)
         signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
-    def __handler(self, signum: int, frame: Any) -> Exception:
+    def __handler(self, signum: int, frame: Any) -> TimeoutError:
         raise TimeoutError("Function time out!!!")
 
-    def __str__(self) -> str:
+    def __str__(self):
         result = ''
         for src in self.nodes:
             for dest in self.edges[src]:

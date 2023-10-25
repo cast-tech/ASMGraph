@@ -5,11 +5,11 @@ import argparse
 import subprocess
 from alive_progress import alive_bar
 from argparse import Namespace
-
+from typing import Dict, NoReturn
 from src.asm_parser import parse_asm_file
 from src.collect_parser import CollectFileParser
 from src.opcodes import MAX_FUNCTION_NAME_LENGTH
-from src.graph import FlowGraph, Dict, NoReturn
+from src.graph import FlowGraph
 from src.xlsx_writer import XLSXWriter
 from src.fusion import process_basic_block
 
@@ -32,6 +32,7 @@ def disassemble_bin_to_asm(binary: str, objdump_path: str) -> str:
 
 
 def load_funcs(asm_path: str, func_name: str = None) -> Dict[str, str]:
+
     assert os.path.exists(asm_path), f"Cannot find asm file: {asm_path}"
 
     with open(asm_path, "r") as asm:

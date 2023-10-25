@@ -115,6 +115,7 @@ class Instruction:
                     self.src1 = self.src2
                     self.src2 = None
 
+
     def is_ret(self) -> bool:
         return self.__is_ret
 
@@ -138,6 +139,7 @@ class Instruction:
             return self.code == "sb" and "sp" in self.src1.value
         else:
             raise ValueError(f"Unsupported store instruction {self.code}")
+
 
     def get_arguments(self) -> List[str]:
         return self.__arguments

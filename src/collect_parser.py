@@ -37,6 +37,7 @@ class CollectFileParser:
         self.__total_exec_count = 0
         self.__inst_group_dict = ValueDict()
 
+
     def parse_collect_file(self) -> NoReturn:
         per_inst_exec_count = 0
         dyn_instr_block_section = False
@@ -52,6 +53,7 @@ class CollectFileParser:
 
             if line.startswith("0x"):
                 tmp_list = line.split()
+
                 bb_addr = get_bb_address(tmp_list[0]) + ":"
                 exec_count = int(tmp_list[1])
                 self.__total_exec_count += exec_count
@@ -69,6 +71,7 @@ class CollectFileParser:
                 self.__inst_group_dict.add(src.opcodes.INSN_GROUP_DICT[inst], per_inst_exec_count)
 
     def extract_usage_info(self, addresses: List) -> Dict[str, int]:
+
         if not self.__bb_usage_info:
             return {}
 
@@ -80,6 +83,7 @@ class CollectFileParser:
         return usage_info
 
     def print_info_from_collect(self) -> NoReturn:
+
         print(f"Total Instructions: {self.__total_exec_count:,}")
         print('Instruction Groups:')
         for k, v in sorted(self.__inst_group_dict.items(), key=lambda item: item[1], reverse=True):

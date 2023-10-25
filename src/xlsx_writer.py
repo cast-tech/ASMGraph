@@ -1,6 +1,8 @@
 import openpyxl
 from openpyxl.styles import Font, Alignment, DEFAULT_FONT
-from .graph import Node, FlowGraph, Dict, List, NoReturn
+from typing import List, Dict, NoReturn
+from .graph import Node, FlowGraph
+
 
 DEFAULT_FONT.name = "Arial"
 
@@ -83,9 +85,6 @@ class XLSXWriter:
         self.__worksheet = self.__workbook.get_sheet_by_name(title)
         exec_count = node.get_execution_count()
 
-        if not exec_count or exec_count == 0:
-            exec_count = 0
-
         for current_fuse in fusions:
             for key, value in current_fuse.items():
                 content = node.get_inner_content().replace("\l\t", "\n")
@@ -112,6 +111,7 @@ class XLSXWriter:
                 row = [func_name, content, input_out, int(exec_count), insn_profit]
                 self.__worksheet.__rows.append(row)
 
+
     def dump(self, row_id: int) -> NoReturn:
         for worksheet in self.__workbook.get_sheet_names():
             self.__worksheet = self.__workbook.get_sheet_by_name(worksheet)
@@ -126,15 +126,16 @@ class XLSXWriter:
 
         self.__workbook.save(self.__xlsx_file)
 
+
     def append(self, graph: FlowGraph,
                func_name: str) -> NoReturn:
+
         for node in graph.nodes:
             if node.is_singleton:
                 content = node.get_inner_content().replace("\l\t", "\n")
                 bb_address_label = f"{node.get_address().strip(':')} " \
                                    f"({node.get_label().strip(':')})"
                 exec_count = node.get_execution_count()
-                if not exec_count or exec_count == 0:
-                    exec_count = 0
                 row = [func_name, bb_address_label, content, exec_count]
+
                 self.__worksheet.__rows.append(row)
