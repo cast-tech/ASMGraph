@@ -129,8 +129,10 @@ def process_function(args: Namespace,
         dot_file = os.path.join(OUT_DIR, function_name + ".dot")
         try:
             graph.draw_graph(dot_file)
-        except Exception:
+        except TimeoutError:
             print("Time is out for func: ", function_name)
+        except Exception as ex:
+            print(str(ex))
             return
 
     if args.singletons:

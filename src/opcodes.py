@@ -359,6 +359,7 @@ INSN_GROUP_DICT = {
     'fmv.x.d': 'FP move/convert',
     'fcvt.w.d': 'FP move/convert',
     'fmv.s': 'FP move/convert',
+    'fle.s': 'FP comparison between floating-point registers',
     'fcvt.w.s': 'FP move/convert',
     'fcvt.d.lu': 'FP move/convert',
     'fcvt.d.w': 'FP move/convert',

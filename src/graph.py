@@ -34,7 +34,7 @@ class Node:
         self.__jump_inst = instruction_list[-1].is_jump()
         self.__ret_inst = instruction_list[-1].is_ret()
 
-        self.__execution_count = None
+        self.__execution_count = 0
         self.__color = None
         self.is_singleton = False
         self.__dot_Node = None
@@ -129,9 +129,6 @@ class Node:
             if self.is_singleton:
                 self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
                                              style="filled", shape="rect", color="limegreen")
-            elif self.__execution_count == 0:
-                self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
-                                             style="filled", shape="rect", color="steelblue")
             else:
                 self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
                                              style="filled", shape="rect", color=self.__color)
@@ -141,7 +138,8 @@ class Node:
                 self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3", style="filled", shape="rect",
                                              color="limegreen")
             else:
-                self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3", style="filled", shape="rect")
+                self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3", style="filled", shape="rect",
+                                             color="steelblue")
 
     def get_dot_node(self) -> pydot.Node:
         return self.__dot_Node
