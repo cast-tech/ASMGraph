@@ -10,7 +10,7 @@ import subprocess
 from alive_progress import alive_bar
 from argparse import Namespace
 from typing import Dict, NoReturn
-from src.asm_parser import parse_asm_file
+from src.asm_parser import parse_function_asm
 from src.collect_parser import CollectFileParser
 from src.opcodes import MAX_FUNCTION_NAME_LENGTH
 from src.graph import FlowGraph
@@ -112,11 +112,11 @@ def process_function(args: Namespace,
     if len(function_name) > MAX_FUNCTION_NAME_LENGTH:
         function_name = function_name[-MAX_FUNCTION_NAME_LENGTH:]
 
-    func_file_path = os.path.join(OUT_DIR, function_name + ".asm")
-    with open(func_file_path, "w") as file:
-        file.write(func_content)
+    if not func_content:
+        print(f"Asm content for {function_name} is empty!")
+        exit(1)
 
-    asm_code = parse_asm_file(func_file_path)
+    asm_code = parse_function_asm(func_content)
     graph = FlowGraph(asm_code)
 
     if args.collect:
@@ -129,8 +129,10 @@ def process_function(args: Namespace,
         dot_file = os.path.join(OUT_DIR, function_name + ".dot")
         try:
             graph.draw_graph(dot_file)
-        except Exception:
+        except TimeoutError:
             print("Time is out for func: ", function_name)
+        except Exception as ex:
+            print(str(ex))
             return
 
     if args.singletons:

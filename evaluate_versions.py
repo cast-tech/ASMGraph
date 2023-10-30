@@ -9,6 +9,8 @@ import os
 import glob
 import argparse
 import xlsxwriter
+from argparse import Namespace
+from typing import Dict, List, NoReturn
 
 FIRST = "FIRST"
 SECOND = "SECOND"
@@ -24,7 +26,7 @@ CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 XLSX_RESULT_FILE_NAME = "evaluation_result.xlsx"
 
 
-def parse_args():
+def parse_args() -> Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('--first-collect-file', dest="first_collect_file", default=None,
                         help="Path to first hot block file")
@@ -39,7 +41,7 @@ def parse_args():
     return args
 
 
-def summary_blocks(collect_file):
+def summary_blocks(collect_file: str) -> [Dict[str, dict], int]:
     summary = {}
     dyn_inst_count = 0
 
@@ -75,7 +77,8 @@ def summary_blocks(collect_file):
     return summary, dyn_inst_count
 
 
-def compare_blocks(origin_hot_blocks, cmp_hot_blocks):
+def compare_blocks(origin_hot_blocks: Dict[str, dict],
+                   cmp_hot_blocks: Dict[str, dict]) -> Dict[str, List]:
     result = {}
     for orig_func_name, orig_exec_count in origin_hot_blocks.items():
         same_cmp_block = cmp_hot_blocks[orig_func_name]
@@ -86,7 +89,8 @@ def compare_blocks(origin_hot_blocks, cmp_hot_blocks):
     return result
 
 
-def prepare_header(workbook, sheet_name):
+def prepare_header(workbook: xlsxwriter.Workbook,
+                   sheet_name: str) -> xlsxwriter:
     ws = workbook.add_worksheet(sheet_name)
 
     row = 0
@@ -115,7 +119,9 @@ def prepare_header(workbook, sheet_name):
     return ws
 
 
-def create_diff_for_single_collect(workbook, file_name, blocks):
+def create_diff_for_single_collect(workbook: xlsxwriter.Workbook,
+                                   file_name: str,
+                                   blocks: Dict[str, List]) -> NoReturn:
 
     ws = prepare_header(workbook, file_name)
 
@@ -151,7 +157,11 @@ def create_diff_for_single_collect(workbook, file_name, blocks):
     ws.write(row, 3, first_dyn_inst_count - second_dyn_inst_count, bold)
 
 
-def create_general_diff(workbook, bench_name, first_dyn_inst_count, second_dyn_inst_count, general_diff_row):
+def create_general_diff(workbook: xlsxwriter.Workbook,
+                        bench_name: str,
+                        first_dyn_inst_count: int,
+                        second_dyn_inst_count: int,
+                        general_diff_row: int) -> NoReturn:
 
     general_diff = workbook.get_worksheet_by_name("general_diff")
     if not general_diff:

@@ -34,8 +34,8 @@ class Node:
         self.__jump_inst = instruction_list[-1].is_jump()
         self.__ret_inst = instruction_list[-1].is_ret()
 
-        self.__execution_count = None
-        self.__color = None
+        self.__execution_count = 0
+        self.__color = "steelblue"
         self.is_singleton = False
         self.__dot_Node = None
 
@@ -125,23 +125,12 @@ class Node:
 
     def create_dot_node(self) -> NoReturn:
         if self.__execution_count:
-            content = f"{self.__label} # usage info: {self.__execution_count}\l\t{self.__content}\l"
-            if self.is_singleton:
-                self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
-                                             style="filled", shape="rect", color="limegreen")
-            elif self.__execution_count == 0:
-                self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
-                                             style="filled", shape="rect", color="steelblue")
-            else:
-                self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
-                                             style="filled", shape="rect", color=self.__color)
+            content = f"{self.__label} # Executed: {self.__execution_count}\l\t{self.__content}\l"
         else:
             content = f"{self.__label} \l\t{self.__content}\l"
-            if self.is_singleton:
-                self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3", style="filled", shape="rect",
-                                             color="limegreen")
-            else:
-                self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3", style="filled", shape="rect")
+
+        self.__dot_Node = pydot.Node(self.__label, label=content, margin="0.3",
+                                     style="filled", shape="rect", color=self.__color)
 
     def get_dot_node(self) -> pydot.Node:
         return self.__dot_Node
@@ -200,6 +189,7 @@ class FlowGraph:
             print("This node is already in graph!")
         else:
             self.nodes.append(node)
+            self.edges[node] = []
             self.edges[node] = []
 
     def add_edge(self, edge: Edge) -> NoReturn:
@@ -299,6 +289,7 @@ class FlowGraph:
                     for dd in self.edges[dest]:
                         if dd in self.edges[src]:
                             dest.is_singleton = True
+                            self.__color = "limegreen"
 
     def draw_graph(self, out_dot_file: str) -> NoReturn:
         # In some cases DOT lib hang over,
