@@ -360,6 +360,7 @@ INSN_GROUP_DICT = {
     'fcvt.w.d': 'FP move/convert',
     'fmv.s': 'FP move/convert',
     'fle.s': 'FP comparison between floating-point registers',
+    'fnmsub.d': 'Floating Negative Multiply-Subtract',
     'fcvt.w.s': 'FP move/convert',
     'fcvt.d.lu': 'FP move/convert',
     'fcvt.d.w': 'FP move/convert',

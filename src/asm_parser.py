@@ -44,14 +44,8 @@ def normalize(asm_code: Dict[str, Instruction]) -> Dict[str, Instruction]:
     return add_labels(asm_code)
 
 
-def parse_asm_file(asm_file: str) -> Dict[str, Instruction]:
-    with open(asm_file, 'r') as a_file:
-        lines = a_file.readlines()
-    if not lines:
-        print(f"Asm file {asm_file} is empty!")
-        exit(1)
-
-    lines = [line.strip() for line in lines if line.strip() and line.strip() != "..."]
+def parse_function_asm(lines: str) -> Dict[str, Instruction]:
+    lines = lines.splitlines()
     asm_code = {}
     for line in lines:
         try:
