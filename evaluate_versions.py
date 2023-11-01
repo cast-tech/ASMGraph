@@ -189,6 +189,27 @@ def create_general_diff(workbook: xlsxwriter.Workbook,
     general_diff.write(general_diff_row, 3, first_dyn_inst_count - second_dyn_inst_count, dyn_inst_format)
 
 
+def delete_needless_collects(collects):
+    collects_exec_counts = {}
+
+    for collect in collects:
+        if "x264_r" in collect:
+
+            with open(collect, "r") as block_fp:
+                exec_count = int(((block_fp.readlines()[-2]).split(":"))[1])
+                collects_exec_counts[collect] = exec_count
+
+    collects = [item for item in collects if "x264_r" not in item]
+    filtered_collects = sorted(collects_exec_counts.items(), key=lambda x: x[1], reverse=True)
+
+    if len(filtered_collects) >= 3:
+        collects.append(filtered_collects[0][0])
+        collects.append(filtered_collects[1][0])
+        collects.append(filtered_collects[2][0])
+
+    return collects
+
+
 def main():
     args = parse_args()
     first_collects = []
@@ -196,11 +217,15 @@ def main():
 
     if args.first_collects_dir:
         first_collects = glob.glob(os.path.join(args.first_collects_dir, "*.collect"))
-        first_collects = sorted(first_collects)
 
     if args.second_collects_dir:
         second_collects = glob.glob(os.path.join(args.second_collects_dir, "*.collect"))
-        second_collects = sorted(second_collects)
+
+    first_collects = delete_needless_collects(first_collects)
+    first_collects = sorted(first_collects)
+
+    second_collects = delete_needless_collects(second_collects)
+    second_collects = sorted(second_collects)
 
     if args.first_collect_file:
         first_collects = [args.first_collect_file]
@@ -218,6 +243,8 @@ def main():
 
     file_name = os.path.join(CUR_DIR, XLSX_RESULT_FILE_NAME)
     workbook = xlsxwriter.Workbook(file_name)
+    collect_id = 0
+
     for i in range(0, len(first_collects)):
         bench_name = os.path.basename((first_collects[i].split(".collect"))[0])
 
@@ -225,6 +252,11 @@ def main():
         second_blocks_inst_count, second_dyn_inst_count = summary_blocks(second_collects[i])
 
         diff_result = compare_blocks(first_blocks_inst_count, second_blocks_inst_count)
+
+        if "x264_r" in bench_name:
+            collect_id += 1
+            bench_name = "{}{}{}".format((bench_name.split("r")[0]), "r_", collect_id)
+
         create_diff_for_single_collect(workbook, bench_name, diff_result)
 
         create_general_diff(workbook, bench_name, first_dyn_inst_count, second_dyn_inst_count, i)
