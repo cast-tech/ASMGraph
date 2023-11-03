@@ -204,9 +204,9 @@ def get_collect_files(collects_dir: str) -> List[str]:
     assert os.path.exists(collects_dir), f"Cannot find directory: {collects_dir}"
 
 
-def get_dyn_inst_count(filename):
+def get_dyn_inst_count(file_path: str) -> int:
 
-    with open(filename, 'r') as f:
+    with open(file_path, 'r') as f:
         f.seek(0, 2)
         fsize = f.tell()
 
