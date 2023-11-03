@@ -28,22 +28,28 @@ XLSX_RESULT_FILE_NAME = "evaluation_result.xlsx"
 
 def parse_args() -> Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--first-collect-file', dest="first_collect_file", default=None,
+    parser.add_argument("--first-collect-file", dest="first_collect_file", type=str, default=None,
                         help="Path to first hot block file")
-    parser.add_argument('--second-collect-file', dest="second_collect_file", default=None,
+    parser.add_argument("--second-collect-file", dest="second_collect_file", type=str, default=None,
                         help="Path to second hot block file")
-    parser.add_argument('--first-collects-dir', dest="first_collects_dir", default=None,
+    parser.add_argument("--first-collects-dir", dest="first_collects_dir", type=str, default=None,
                         help="Path to directory with first hot block files (with .collect files)")
-    parser.add_argument('--second-collects-dir', dest="second_collects_dir", default=None,
+    parser.add_argument("--second-collects-dir", dest="second_collects_dir", type=str, default=None,
                         help="Path to directory with second hot block files (with .collect files)")
+
     args = parser.parse_args()
+
+    if not args.first_collects_dir and not args.first_collect_file:
+        parser.error('--first-collect-file or --first-collects-dir is required')
+
+    if not args.second_collects_dir and not args.second_collect_file:
+        parser.error('--second-collect-file or --second-collects-dir is required')
 
     return args
 
 
-def summary_blocks(collect_file: str) -> [Dict[str, dict], int]:
+def summary_blocks(collect_file: str) -> [Dict[str, dict]]:
     summary = {}
-    dyn_inst_count = 0
 
     with open(collect_file, "r") as block_fp:
 
@@ -59,7 +65,6 @@ def summary_blocks(collect_file: str) -> [Dict[str, dict], int]:
                 continue
 
             block_info = line.split()
-            dyn_inst_count += int(block_info[1])
 
             if len(block_info) == 4:
                 function_name = block_info[3]
@@ -74,7 +79,7 @@ def summary_blocks(collect_file: str) -> [Dict[str, dict], int]:
     sort_by_exec_count = sorted(summary.items(), key=lambda x: x[1], reverse=True)
     summary = dict(sort_by_exec_count)
 
-    return summary, dyn_inst_count
+    return summary
 
 
 def compare_blocks(origin_hot_blocks: Dict[str, dict],
@@ -189,18 +194,48 @@ def create_general_diff(workbook: xlsxwriter.Workbook,
     general_diff.write(general_diff_row, 3, first_dyn_inst_count - second_dyn_inst_count, dyn_inst_format)
 
 
+def get_collect_files(collects_dir: str) -> List[str]:
+
+    if os.path.exists(collects_dir):
+        first_collects = glob.glob(os.path.join(collects_dir, "*.collect"))
+        first_collects = sorted(first_collects)
+        return first_collects
+
+    assert os.path.exists(collects_dir), f"Cannot find directory: {collects_dir}"
+
+
+def get_dyn_inst_count(filename):
+
+    with open(filename, 'r') as f:
+        f.seek(0, 2)
+        fsize = f.tell()
+
+        lines = []
+        newline_chars = '\n\r'
+        position = fsize - 1
+
+        while len(lines) < 3 and position >= 0:
+            f.seek(position)
+            char = f.read(1)
+            if char in newline_chars:
+                lines.append(f.readline())
+            position -= 1
+
+        if lines[::-1][0]:
+            return int(((lines[::-1][0]).split(':')[1]))
+
+
 def main():
+
     args = parse_args()
     first_collects = []
     second_collects = []
 
     if args.first_collects_dir:
-        first_collects = glob.glob(os.path.join(args.first_collects_dir, "*.collect"))
-        first_collects = sorted(first_collects)
+        first_collects = get_collect_files(args.first_collects_dir)
 
     if args.second_collects_dir:
-        second_collects = glob.glob(os.path.join(args.second_collects_dir, "*.collect"))
-        second_collects = sorted(second_collects)
+        second_collects = get_collect_files(args.second_collects_dir)
 
     if args.first_collect_file:
         first_collects = [args.first_collect_file]
@@ -218,14 +253,18 @@ def main():
 
     file_name = os.path.join(CUR_DIR, XLSX_RESULT_FILE_NAME)
     workbook = xlsxwriter.Workbook(file_name)
+
     for i in range(0, len(first_collects)):
         bench_name = os.path.basename((first_collects[i].split(".collect"))[0])
 
-        first_blocks_inst_count, first_dyn_inst_count = summary_blocks(first_collects[i])
-        second_blocks_inst_count, second_dyn_inst_count = summary_blocks(second_collects[i])
+        first_dyn_inst_count = get_dyn_inst_count(first_collects[i])
+        second_dyn_inst_count = get_dyn_inst_count(second_collects[i])
 
-        diff_result = compare_blocks(first_blocks_inst_count, second_blocks_inst_count)
-        create_diff_for_single_collect(workbook, bench_name, diff_result)
+        if not args.first_collects_dir and not args.second_collects_dir:
+            first_blocks_inst_count = summary_blocks(first_collects[i])
+            second_blocks_inst_count = summary_blocks(second_collects[i])
+            diff_result = compare_blocks(first_blocks_inst_count, second_blocks_inst_count)
+            create_diff_for_single_collect(workbook, bench_name, diff_result)
 
         create_general_diff(workbook, bench_name, first_dyn_inst_count, second_dyn_inst_count, i)
 
