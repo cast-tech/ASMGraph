@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# *******************************************************
+# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# *******************************************************
+
 import os
 import argparse
 from argparse import Namespace
@@ -10,8 +14,8 @@ from typing import List, NoReturn
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 COLLECTS_DIR = os.path.join(CUR_DIR, "collects")
 
-EXCLUDE_LIST = ["525.x264_r", "511.povray_r", "521.wrf_r",
-                "526.blender_r", "527.cam4_r", "538.imagick_r"]
+HAS_SIDE_BINARIES = {"525.x264_r": 3, "511.povray_r": 1, "521.wrf_r": 1,
+                     "526.blender_r": 1, "527.cam4_r": 1, "538.imagick_r": 1}
 
 
 def parse_arguments() -> Namespace:
@@ -39,11 +43,11 @@ def get_dyn_inst_count(file_path: str) -> int:
                 lines.append(f.readline())
             position -= 1
 
-        if lines[::-1][0]:
-            return int(((lines[::-1][0]).split(':')[1]))
+        if lines[2]:
+            return int(((lines[2]).split(':')[1]))
 
 
-def delete_needless_collects(collects: List) -> List[str]:
+def get_collections_with_no_side_binaries(collects: List[str], required_amount: int) -> List[str]:
     collects_exec_counts = {}
     necessary_collects = []
 
@@ -51,13 +55,16 @@ def delete_needless_collects(collects: List) -> List[str]:
         exec_count = get_dyn_inst_count(collect)
         collects_exec_counts[collect] = exec_count
 
-    filtered_collects = sorted(collects_exec_counts.items(),
-                               key=lambda x: x[1], reverse=True)
+    sort_by_execution_count = sorted(collects_exec_counts.items(),
+                                     key=lambda x: x[1], reverse=True)
 
-    if len(filtered_collects) >= 3:
-        necessary_collects.append(filtered_collects[0][0])
-        necessary_collects.append(filtered_collects[1][0])
-        necessary_collects.append(filtered_collects[2][0])
+    if len(sort_by_execution_count) >= required_amount:
+        for idx, collect in enumerate(sort_by_execution_count):
+            if idx < required_amount:
+                necessary_collects.append(collect[0])
+                continue
+
+            break
 
     return necessary_collects
 
@@ -77,8 +84,8 @@ def copy_collect(CPU_DIR: str, out_dir: str) -> NoReturn:
   for bench, collects in benches.items():
 
       if len(collects) != 1:
-          if bench in EXCLUDE_LIST:
-            collects = delete_needless_collects(collects)
+          if bench in HAS_SIDE_BINARIES.keys():
+            collects = get_collections_with_no_side_binaries(collects, HAS_SIDE_BINARIES[bench])
           i = 1
           for c in collects:
               shutil.copy(c, f"{out_dir}/{bench}_{i}.collect")
