@@ -52,8 +52,7 @@ def get_collections_with_no_side_binaries(collects: List[str], required_amount: 
     necessary_collects = []
 
     for collect in collects:
-        exec_count = get_dyn_inst_count(collect)
-        collects_exec_counts[collect] = exec_count
+        collects_exec_counts[collect] = get_dyn_inst_count(collect)
 
     sort_by_execution_count = sorted(collects_exec_counts.items(),
                                      key=lambda x: x[1], reverse=True)
