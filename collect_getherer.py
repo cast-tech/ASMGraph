@@ -29,7 +29,7 @@ def parse_arguments() -> Namespace:
 
 def get_dyn_inst_count(file_path: str) -> int:
     with open(file_path, 'r') as f:
-        f.seek(0, 2)
+        f.seek(0, os.SEEK_END)
         fsize = f.tell()
 
         lines = []
@@ -44,10 +44,10 @@ def get_dyn_inst_count(file_path: str) -> int:
             position -= 1
 
         if lines[2]:
-            return int(((lines[2]).split(':')[1]))
+            return int(lines[2].split(':')[1])
 
 
-def get_collections_with_no_side_binaries(collects: List[str], required_amount: int) -> List[str]:
+def get_primaries(collects: List[str], required_amount: int) -> List[str]:
     collects_exec_counts = {}
     necessary_collects = []
 
@@ -84,7 +84,7 @@ def copy_collect(CPU_DIR: str, out_dir: str) -> NoReturn:
 
       if len(collects) != 1:
           if bench in HAS_SIDE_BINARIES.keys():
-            collects = get_collections_with_no_side_binaries(collects, HAS_SIDE_BINARIES[bench])
+            collects = get_primaries(collects, HAS_SIDE_BINARIES[bench])
           i = 1
           for c in collects:
               shutil.copy(c, f"{out_dir}/{bench}_{i}.collect")
