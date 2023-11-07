@@ -28,14 +28,16 @@ XLSX_RESULT_FILE_NAME = "evaluation_result.xlsx"
 
 def parse_args() -> Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--first-collect-file", dest="first_collect_file", type=str, default=None,
+    parser.add_argument("--ff", dest="first_collect_file", type=str, default=None,
                         help="Path to first hot block file")
-    parser.add_argument("--second-collect-file", dest="second_collect_file", type=str, default=None,
+    parser.add_argument("--sf", dest="second_collect_file", type=str, default=None,
                         help="Path to second hot block file")
-    parser.add_argument("--first-collects-dir", dest="first_collects_dir", type=str, default=None,
+    parser.add_argument("--fd", dest="first_collects_dir", type=str, default=None,
                         help="Path to directory with first hot block files (with .collect files)")
-    parser.add_argument("--second-collects-dir", dest="second_collects_dir", type=str, default=None,
+    parser.add_argument("--sd", dest="second_collects_dir", type=str, default=None,
                         help="Path to directory with second hot block files (with .collect files)")
+    parser.add_argument("--cfd", dest="create_functions_diff_sheet", action="store_true",
+                        help="Create a functions comparisons table, when using '--fd' and '--sd' options.")
 
     args = parser.parse_args()
 
@@ -45,11 +47,21 @@ def parse_args() -> Namespace:
     if not args.second_collects_dir and not args.second_collect_file:
         parser.error('--second-collect-file or --second-collects-dir is required')
 
+    if args.first_collect_file and not args.second_collect_file or \
+       not args.first_collect_file and args.second_collect_file:
+        parser.error("First and second argument must be a file, please use"
+                     " '--ff' and '--sf' options.")
+
+    if args.first_collects_dir and not args.second_collects_dir or \
+       not args.first_collects_dir and args.second_collects_dir:
+        parser.error("First or second argument must be a directory, please use"
+                     " '--fd' and '--sd' options.")
+
     return args
 
 
-def summary_blocks(collect_file: str) -> [Dict[str, dict]]:
-    summary = {}
+def get_functions_dyn_inst_count(collect_file: str) -> [Dict[str, dict]]:
+    func_name_and_dyn_inst_count = {}
 
     with open(collect_file, "r") as block_fp:
 
@@ -71,25 +83,25 @@ def summary_blocks(collect_file: str) -> [Dict[str, dict]]:
                 if "." in function_name:
                     function_name = function_name.split(".")[0]
 
-                if function_name in summary:
-                    summary[function_name] += int(block_info[1])
+                if function_name in func_name_and_dyn_inst_count:
+                    func_name_and_dyn_inst_count[function_name] += int(block_info[1])
                 else:
-                    summary[function_name] = int(block_info[1])
+                    func_name_and_dyn_inst_count[function_name] = int(block_info[1])
 
-    sort_by_exec_count = sorted(summary.items(), key=lambda x: x[1], reverse=True)
-    summary = dict(sort_by_exec_count)
+    sort_by_exec_count = sorted(func_name_and_dyn_inst_count.items(), key=lambda x: x[1], reverse=True)
 
-    return summary
+    return dict(sort_by_exec_count)
 
 
-def compare_blocks(origin_hot_blocks: Dict[str, dict],
-                   cmp_hot_blocks: Dict[str, dict]) -> Dict[str, List]:
+def get_cmp_result(first_collects_func_info: Dict[str, dict],
+                   second_collects_func_info: Dict[str, dict]) -> Dict[str, List]:
+
     result = {}
-    for orig_func_name, orig_exec_count in origin_hot_blocks.items():
-        same_cmp_block = cmp_hot_blocks[orig_func_name]
+    for first_func_name, first_func_exec_count in first_collects_func_info.items():
+        same_second_func = second_collects_func_info[first_func_name]
 
-        if same_cmp_block:
-            result[orig_func_name] = [orig_exec_count, same_cmp_block]
+        if same_second_func:
+            result[first_func_name] = [first_func_exec_count, same_second_func]
 
     return result
 
@@ -194,20 +206,42 @@ def create_general_diff(workbook: xlsxwriter.Workbook,
     general_diff.write(general_diff_row, 3, first_dyn_inst_count - second_dyn_inst_count, dyn_inst_format)
 
 
-def get_collect_files(collects_dir: str) -> List[str]:
+def get_files_from_dir(directory: str) -> List[str]:
 
-    if os.path.exists(collects_dir):
-        first_collects = glob.glob(os.path.join(collects_dir, "*.collect"))
-        first_collects = sorted(first_collects)
-        return first_collects
+    if os.path.exists(directory):
+        collects = sorted(glob.glob(os.path.join(directory, "*.collect")))
+        return collects
+    else:
+        assert f"Cannot find directory: {directory}"
 
-    assert os.path.exists(collects_dir), f"Cannot find directory: {collects_dir}"
+
+def get_collect_files(args: Namespace) -> (List[str], List[str]):
+    first_collects = []
+    second_collects = []
+
+    if args.first_collects_dir:
+        first_collects = get_files_from_dir(args.first_collects_dir)
+
+    if args.second_collects_dir:
+        second_collects = get_files_from_dir(args.second_collects_dir)
+
+    if args.first_collect_file:
+        assert (os.path.isfile(args.first_collect_file)), \
+            f"Cannot find first file: {args.first_collect_file}"
+        first_collects = [args.first_collect_file]
+
+    if args.second_collect_file:
+        assert (os.path.isfile(args.second_collect_file)), \
+            f"Cannot find second file: {args.second_collect_file}"
+        second_collects = [args.second_collect_file]
+
+    return first_collects, second_collects
 
 
 def get_dyn_inst_count(file_path: str) -> int:
 
     with open(file_path, 'r') as f:
-        f.seek(0, 2)
+        f.seek(0, os.SEEK_END)
         fsize = f.tell()
 
         lines = []
@@ -221,52 +255,45 @@ def get_dyn_inst_count(file_path: str) -> int:
                 lines.append(f.readline())
             position -= 1
 
-        if lines[::-1][0]:
-            return int(((lines[::-1][0]).split(':')[1]))
+        if lines[2]:
+            return int(((lines[2]).split(':')[1]))
+
+
+def compute_and_get_diff(first_collect: str, second_collect: str) -> dict[str, list]:
+
+    funcs_dyn_count_from_first_collect = get_functions_dyn_inst_count(first_collect)
+    funcs_dyn_count_from_second_collect = get_functions_dyn_inst_count(second_collect)
+    diff_result = get_cmp_result(funcs_dyn_count_from_first_collect,
+                                 funcs_dyn_count_from_second_collect)
+
+    return diff_result
 
 
 def main():
 
     args = parse_args()
-    first_collects = []
-    second_collects = []
 
-    if args.first_collects_dir:
-        first_collects = get_collect_files(args.first_collects_dir)
-
-    if args.second_collects_dir:
-        second_collects = get_collect_files(args.second_collects_dir)
-
-    if args.first_collect_file:
-        first_collects = [args.first_collect_file]
-
-    if args.second_collect_file:
-        second_collects = [args.second_collect_file]
-
-    if not first_collects:
-        print("Can't find first hot block file(s)")
-        return
-
-    if not second_collects:
-        print("Can't find second hot block file(s)")
-        return
-
+    first_collects, second_collects = get_collect_files(args)
     file_name = os.path.join(CUR_DIR, XLSX_RESULT_FILE_NAME)
     workbook = xlsxwriter.Workbook(file_name)
 
-    for i in range(0, len(first_collects)):
-        bench_name = os.path.basename((first_collects[i].split(".collect"))[0])
+    for idx, first_collect in enumerate(first_collects):
+        try:
+            second_collect = second_collects[second_collects.index(first_collect)]
+            bench_name = os.path.basename((first_collect.split(".collect"))[0])
+            first_dyn_inst_count = get_dyn_inst_count(first_collect)
+            second_dyn_inst_count = get_dyn_inst_count(second_collect)
 
-        first_dyn_inst_count = get_dyn_inst_count(first_collects[i])
-        second_dyn_inst_count = get_dyn_inst_count(second_collects[i])
+            if args.first_collect_file and args.second_collect_file or args.create_functions_diff_sheet:
+                result = compute_and_get_diff(first_collect, second_collect)
+                create_diff_for_single_collect(workbook, bench_name, result)
 
-        if not args.first_collects_dir and not args.second_collects_dir:
-            first_blocks_inst_count = summary_blocks(first_collects[i])
-            second_blocks_inst_count = summary_blocks(second_collects[i])
-            diff_result = compare_blocks(first_blocks_inst_count, second_blocks_inst_count)
-            create_diff_for_single_collect(workbook, bench_name, diff_result)
+            if args.first_collects_dir and args.second_collects_dir:
+                create_general_diff(workbook, bench_name, first_dyn_inst_count,
+                                    second_dyn_inst_count, idx)
 
-        create_general_diff(workbook, bench_name, first_dyn_inst_count, second_dyn_inst_count, i)
+        except ValueError as ex:
+            print(str(ex))
 
     workbook.close()
 
