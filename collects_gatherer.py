@@ -21,7 +21,7 @@ HAS_SIDE_BINARIES = {"525.x264_r": 3, "511.povray_r": 1, "521.wrf_r": 1,
 def parse_arguments() -> Namespace:
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-s", "--spec_dir", required=True, type=str,
-                        help="Path to the compiler specCPU root.")
+                        help="Path to SPEC root.")
 
     parsed_args = parser.parse_args()
     return parsed_args
@@ -70,10 +70,10 @@ def get_primaries(collects: List[str], required_amount: int) -> List[str]:
 
 def copy_collect(CPU_DIR: str, out_dir: str) -> NoReturn:
 
-  orig_collects = glob.glob(f"{CPU_DIR}/*/*/*.collect")
+  collects = glob.glob(f"{CPU_DIR}/*/*/*/*.collect")
 
   benches = {}
-  for c in orig_collects:
+  for c in collects:
       bench_name = c.strip(CPU_DIR).split("/")[0]
       if bench_name in benches:
           benches[bench_name].append(c)
