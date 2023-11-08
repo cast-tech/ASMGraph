@@ -18,9 +18,7 @@ FUNCTION_NAME = "FUNCTION NAME"
 DIFF = "DIFF (FIRST - SECOND)"
 DIFF_IN_PERCENTS = "DIFF IN PERCENTS"
 TOTAL = "TOTAL"
-DYNAMIC_INST_COUNT = "DYN_COUNT"
 TEST_NAME = "TEST NAME"
-DYN_COUNT_DIFF = "DYN_COUNT_DIFF"
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 XLSX_RESULT_FILE_NAME = "evaluation_result.xlsx"
@@ -36,16 +34,16 @@ def parse_args() -> Namespace:
                         help="Path to directory with first hot block files (with .collect files)")
     parser.add_argument("--sd", dest="second_collects_dir", type=str, default=None,
                         help="Path to directory with second hot block files (with .collect files)")
-    parser.add_argument("--cfd", dest="create_functions_diff_sheet", action="store_true",
-                        help="Create a functions comparisons table, when using '--fd' and '--sd' options.")
+    parser.add_argument("--all", dest="create_functions_diff_sheet", action="store_true",
+                        help="Also create a functions comparisons table.")
 
     args = parser.parse_args()
 
     if not args.first_collects_dir and not args.first_collect_file:
-        parser.error('--first-collect-file or --first-collects-dir is required')
+        parser.error('--ff or --fd is required')
 
     if not args.second_collects_dir and not args.second_collect_file:
-        parser.error('--second-collect-file or --second-collects-dir is required')
+        parser.error('--sf or --sd is required')
 
     if args.first_collect_file and not args.second_collect_file or \
        not args.first_collect_file and args.second_collect_file:
@@ -284,7 +282,7 @@ def main():
             first_dyn_inst_count = get_dyn_inst_count(first_collect)
             second_dyn_inst_count = get_dyn_inst_count(second_collect)
 
-            if args.first_collect_file and args.second_collect_file or args.create_functions_diff_sheet:
+            if (args.first_collect_file and args.second_collect_file) or args.create_functions_diff_sheet:
                 result = compute_and_get_diff(first_collect, second_collect)
                 create_diff_for_single_collect(workbook, bench_name, result)
 
