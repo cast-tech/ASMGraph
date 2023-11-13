@@ -185,8 +185,7 @@ We are providing a small script that will help with that issue.\
 `evaluate_versions.py` script intends to compare the performance of two compilers.
 
 For example, you have *collect files gathered in `dir_1` and `dir_2` directories, \
-respectively for C1 and C2 compilers. To compare them just run the following command line and you can \
-use --all option to create functions comparison table.
+respectively for C1 and C2 compilers. To compare them just run the following command line.
 
 ```commandline
 ./evaluate_versions.py --fd ./dir_1 --sd ./dir_2 --all
@@ -197,4 +196,5 @@ That contains the comparison of each `*collect` file separated sheet by sheet.\
 Name of `*collect` files such important, the script tries to compare only collects which have the same name.
 
 Please note that the script performs comparisons based on collect file names. \
-Additionally, it provides a general comparison sheet (*general_diff*) to show the overall differences.
+Additionally, it provides a general comparison sheet (*general_diff*) to show the overall differences. \
+If you wish to see only the general comparison sheet, then just skip `--all` option.
