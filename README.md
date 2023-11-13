@@ -185,10 +185,11 @@ We are providing a small script that will help with that issue.\
 `evaluate_versions.py` script intends to compare the performance of two compilers.
 
 For example, you have *collect files gathered in `dir_1` and `dir_2` directories, \
-respectively for C1 and C2 compilers. To compare them just run the following command line.
+respectively for C1 and C2 compilers. To compare them just run the following command line and you can \
+use --all option to create functions comparison table.
 
 ```commandline
-./evaluate_versions.py --first-collects-dir ./dir_1 --second-collects-dir ./dir_2
+./evaluate_versions.py --fd ./dir_1 --sd ./dir_2 --all
 ```
 
 In the current working directory will be created `evaluation_result.xlsx` sheet.\
