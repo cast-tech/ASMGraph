@@ -14,6 +14,7 @@ def add_labels(asm_code: Dict[str, Instruction]) -> Dict[str, Instruction]:
     for ind, source_instr in enumerate(instr_list):
         jump_target = source_instr.get_jump_target()
         if jump_target:
+            jump_target = jump_target.lstrip("0x")
             if source_instr.code == 'jal':
                 if ind + 1 < length_of_lines:
                     if not instr_list[ind + 1].get_label():
@@ -50,7 +51,8 @@ def parse_function_asm(lines: str) -> Dict[str, Instruction]:
     for line in lines:
         try:
             inst = Instruction(line)
-        except Exception:
+        except Exception as e:
+            print(f"Reached invalid instruction: {e}")
             continue
         asm_code[inst.get_address()] = inst
 

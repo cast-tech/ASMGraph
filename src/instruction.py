@@ -57,7 +57,8 @@ class Operand:
 class Instruction:
     def __init__(self, line: str):
         self.__content = line
-        tmp_list = line.split()
+        self.__preprocess_content()
+        tmp_list = self.__content.split()
         self.__address = tmp_list[0]
         self.__arguments = []
         self.__jump_target = None
@@ -66,7 +67,7 @@ class Instruction:
         self.src2 = None
         self.code = None
 
-        if line[-1] == ":":
+        if self.__content[-1] == ":":
             self.__label = tmp_list[1]
             self.__is_branch = False
             self.__is_jump = False
@@ -118,6 +119,9 @@ class Instruction:
                     self.dest = self.src1
                     self.src1 = self.src2
                     self.src2 = None
+
+    def __preprocess_content(self) -> NoReturn:
+        self.__content = self.__content.replace(", ", ",")
 
     def is_ret(self) -> bool:
         return self.__is_ret
