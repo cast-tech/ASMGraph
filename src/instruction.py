@@ -57,7 +57,7 @@ class Operand:
 class Instruction:
     def __init__(self, line: str):
         self.__content = line
-        self.__preprocess_content()
+        self.__content = self.__content.replace(", ", ",")
         tmp_list = self.__content.split()
         self.__address = tmp_list[0]
         self.__arguments = []
@@ -119,10 +119,6 @@ class Instruction:
                     self.dest = self.src1
                     self.src1 = self.src2
                     self.src2 = None
-
-    def __preprocess_content(self) -> NoReturn:
-        self.__content = self.__content.replace(", ", ",")
-
     def is_ret(self) -> bool:
         return self.__is_ret
 
