@@ -119,6 +119,7 @@ class Instruction:
                     self.dest = self.src1
                     self.src1 = self.src2
                     self.src2 = None
+
     def is_ret(self) -> bool:
         return self.__is_ret
 
