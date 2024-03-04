@@ -41,10 +41,13 @@ class CollectFileParser:
         self.__total_exec_count = 0
         self.__inst_group_dict = ValueDict()
 
-    def parse_collect_file(self) -> NoReturn:
+    def parse_collect_file(self, target_func: Dict[str, str]) -> NoReturn:
         per_inst_exec_count = 0
         dyn_instr_block_section = False
+        func_name = None
 
+        for ind, name in enumerate(target_func.items()):
+            func_name = name[ind]
         for i, line in enumerate(self.__content):
             if not dyn_instr_block_section:
                 if line == "## Blocks (by dynamic instructions)":
@@ -53,10 +56,9 @@ class CollectFileParser:
 
             if line == "## Blocks (by dynamic invocations)":
                 break
-
-            if line.startswith("0x"):
+            inst = line.split()[1]
+            if line.startswith("0x") and line.endswith(func_name):
                 tmp_list = line.split()
-
                 bb_addr = get_bb_address(tmp_list[0]) + ":"
                 exec_count = int(tmp_list[1])
                 self.__total_exec_count += exec_count
@@ -69,9 +71,8 @@ class CollectFileParser:
                     instr_lines_count += 1
                 per_inst_exec_count = exec_count / instr_lines_count
 
-            else:
-                inst = line.split()[1]
-                self.__inst_group_dict.add(src.opcodes.INSN_GROUP_DICT[inst], per_inst_exec_count)
+            elif inst in src.opcodes.INSN_GROUP_DICT:
+               self.__inst_group_dict.add(src.opcodes.INSN_GROUP_DICT[inst], per_inst_exec_count)
 
     def extract_usage_info(self, addresses: List) -> Dict[str, int]:
 
