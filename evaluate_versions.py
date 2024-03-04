@@ -58,7 +58,7 @@ def parse_args() -> Namespace:
     return args
 
 
-def get_functions_dyn_inst_count(collect_file: str) -> [Dict[str, dict]]:
+def get_functions_dyn_inst_count(collect_file: str) -> [Dict[str, Dict]]:
     func_name_and_dyn_inst_count = {}
 
     with open(collect_file, "r") as block_fp:
@@ -91,18 +91,15 @@ def get_functions_dyn_inst_count(collect_file: str) -> [Dict[str, dict]]:
     return dict(sort_by_exec_count)
 
 
-def get_cmp_result(first_collects_func_info: Dict[str, dict],
-                   second_collects_func_info: Dict[str, dict]) -> Dict[str, List]:
-
+def get_cmp_result(first_collects_func_info: Dict[str, Dict],
+                   second_collects_func_info: Dict[str, Dict]) -> Dict[str, List]:
     result = {}
-    for first_func_name, first_func_exec_count in first_collects_func_info.items():
-        same_second_func = second_collects_func_info[first_func_name]
 
-        if same_second_func:
-            result[first_func_name] = [first_func_exec_count, same_second_func]
+    for first_func_name, first_func_exec_count in first_collects_func_info.items():
+        same_second_func = second_collects_func_info.get(first_func_name, -1)
+        result[first_func_name] = [first_func_exec_count, same_second_func]
 
     return result
-
 
 def prepare_header(workbook: xlsxwriter.Workbook,
                    sheet_name: str) -> xlsxwriter:
@@ -257,7 +254,7 @@ def get_dyn_inst_count(file_path: str) -> int:
             return int(((lines[2]).split(':')[1]))
 
 
-def compute_and_get_diff(first_collect: str, second_collect: str) -> dict[str, list]:
+def compute_and_get_diff(first_collect: str, second_collect: str) -> Dict[str, List]:
 
     funcs_dyn_count_from_first_collect = get_functions_dyn_inst_count(first_collect)
     funcs_dyn_count_from_second_collect = get_functions_dyn_inst_count(second_collect)
@@ -276,20 +273,26 @@ def main():
     workbook = xlsxwriter.Workbook(file_name)
 
     for idx, first_collect in enumerate(first_collects):
+        second_collect = None
         try:
-            second_collect = second_collects[second_collects.index(first_collect)]
-            bench_name = os.path.basename((first_collect.split(".collect"))[0])
-            first_dyn_inst_count = get_dyn_inst_count(first_collect)
-            second_dyn_inst_count = get_dyn_inst_count(second_collect)
+            for collect in second_collects:
+                if os.path.basename(collect) == os.path.basename(first_collect):
+                    second_collect = collect
+                    break
+            if second_collect:
+                bench_name = os.path.basename((first_collect.split(".collect"))[0])
+                first_dyn_inst_count = get_dyn_inst_count(first_collect)
+                second_dyn_inst_count = get_dyn_inst_count(second_collect)
 
-            if (args.first_collect_file and args.second_collect_file) or args.create_functions_diff_sheet:
-                result = compute_and_get_diff(first_collect, second_collect)
-                create_diff_for_single_collect(workbook, bench_name, result)
+                if (args.first_collect_file and args.second_collect_file) or args.create_functions_diff_sheet:
+                    result = compute_and_get_diff(first_collect, second_collect)
+                    create_diff_for_single_collect(workbook, bench_name, result)
 
-            if args.first_collects_dir and args.second_collects_dir:
-                create_general_diff(workbook, bench_name, first_dyn_inst_count,
-                                    second_dyn_inst_count, idx)
-
+                if args.first_collects_dir and args.second_collects_dir:
+                    create_general_diff(workbook, bench_name, first_dyn_inst_count,
+                                        second_dyn_inst_count, idx)
+            else:
+                print(f"{first_collect} file is not found.")
         except ValueError as ex:
             print(str(ex))
 

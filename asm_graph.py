@@ -168,7 +168,7 @@ def main(args: Namespace):
     if args.collect:
         assert os.path.exists(args.collect), f"Cannot find collect file: {args.collect}. No such file."
         collect_parser = CollectFileParser(args.collect)
-        collect_parser.parse_collect_file()
+        collect_parser.parse_collect_file(load_funcs(args.asm, args.func))
 
     xlsxwriter_singletons = None
     if args.singletons:
