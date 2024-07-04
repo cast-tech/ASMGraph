@@ -190,7 +190,10 @@ respectively for C1 and C2 compilers. To compare them just run the following com
 ```commandline
 ./evaluate_versions.py --fd ./dir_1 --sd ./dir_2 --all
 ```
-
+To compare individual .collect files use this command line:
+```commandline
+./evaluate_versions.py --ff ./collect_file_1 --sf ./collect_file_2
+```
 In the current working directory will be created `evaluation_result.xlsx` sheet.\
 That contains the comparison of each `*collect` file separated sheet by sheet.\
 Name of `*collect` files such important, the script tries to compare only collects which have the same name.

@@ -37,6 +37,10 @@ def add_labels(asm_code: Dict[str, Instruction]) -> Dict[str, Instruction]:
                 if ind + 1 < length_of_lines and not instr_list[ind + 1].get_label():
                     instr_list[ind+1].set_label(f"B{count}:")
                     count += 1
+        if source_instr.is_ret():
+            if ind + 1 < length_of_lines and not instr_list[ind + 1].get_label():
+                instr_list[ind + 1].set_label(f"B{count}:")
+                count += 1
 
     return asm_code
 
