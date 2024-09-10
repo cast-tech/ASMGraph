@@ -1,0 +1,13 @@
+/*******************************************************
+ * Copyright (c) 2022-2024 CAST.  All rights reserved. *
+ *******************************************************/
+
+.label-error {
+    color: @error_hint_color;
+}
+.label-default, label {
+    color: @label-default_colour;
+}
+.label_main {
+    padding: 0 10px 0 0;
+}

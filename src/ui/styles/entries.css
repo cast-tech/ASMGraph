@@ -1,0 +1,21 @@
+/*******************************************************
+ * Copyright (c) 2022-2024 CAST.  All rights reserved. *
+ *******************************************************/
+
+@import url("colors.css");
+
+entry {
+    border: 2px solid @base_border_color;
+    background-color: transparent;
+    box-shadow: none;
+    margin-top: 15px;
+}
+
+entry:focus {
+    border: 2px solid @selected_bd_color;
+}
+
+
+.viz_box_search {
+    margin-right: 20px;
+ }

@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
 
 # *******************************************************
-# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# * Copyright (c) 2022-2024 CAST.  All rights reserved. *
 # *******************************************************
 
+import json
 import os
 import argparse
 import subprocess
+import shutil
+import glob
+
 from alive_progress import alive_bar
 from argparse import Namespace
 from typing import Dict, NoReturn
+
+from plugins.helper import run_selected_plugins, load_plugins, add_plugin
 from src.asm_parser import parse_function_asm
-from src.collect_parser import CollectFileParser
+from src.bbe_parser import BBEFileParser
+from src.funcs_black_list import load_blacklist
 from src.opcodes import MAX_FUNCTION_NAME_LENGTH
 from src.graph import FlowGraph
+from src.ui.constants import ROOT_DIR, PLUGINS_JSON
 from src.xlsx_writer import XLSXWriter
-from src.fusion import process_basic_block
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(CUR_DIR, "output")
@@ -36,18 +43,15 @@ def disassemble_bin_to_asm(binary: str, objdump_path: str) -> str:
 
 
 def load_funcs(asm_path: str, func_name: str = None) -> Dict[str, str]:
-
-    assert os.path.exists(asm_path), f"Cannot find asm file: {asm_path}"
-
     with open(asm_path, "r") as asm:
         lines = asm.readlines()
 
     lines = [line.strip() for line in lines if line.strip()]
     asm_funcs = {}
-
     curr_func_name = ""
     curr_func_content = ""
     text_section = False
+    black_list = load_blacklist()
 
     for line in lines:
         if not text_section:
@@ -60,15 +64,15 @@ def load_funcs(asm_path: str, func_name: str = None) -> Dict[str, str]:
 
         if line.endswith(">:"):
             if curr_func_content:
-                if not func_name or func_name == curr_func_name:
+                if (func_name == "all" and func_name not in black_list) or (func_name == curr_func_name):
                     asm_funcs[curr_func_name] = curr_func_content
                 curr_func_content = ""
             curr_func_name = line.split()[-1].strip("<>:")
 
-        if not func_name or func_name == curr_func_name:
+        if (func_name == "all" and func_name not in black_list) or (func_name == curr_func_name):
             curr_func_content += line + "\n"
 
-    if not func_name or func_name == curr_func_name:
+    if (func_name == "all" and func_name not in black_list) or (func_name == curr_func_name):
         asm_funcs[curr_func_name] = curr_func_content
 
     assert asm_funcs, "Cannot load functions."
@@ -79,21 +83,29 @@ def parse_arguments() -> Namespace:
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     group = parser.add_mutually_exclusive_group(required=True)
 
-    group.add_argument("-a", "--asm", type=str, help="Path to the assembler file.")
+    group.add_argument("-a", "--asm", type=str, help="Path to the assembly file.")
     group.add_argument("-b", "--bin", type=str, help="Path to the binary file.")
     parser.add_argument("-d", "--objdump", type=str, help="Path to the disassembler (riscv-**objdump).")
     parser.add_argument("-f", "--func", type=str, default="all",
                         help="The name of the function that should be extracted.\n"
                              "By default will produce all functions from the text segment.")
-    parser.add_argument("-c", "--collect", type=str, help="Path to the collect file.")
-    parser.add_argument("-i", "--fusion",  action="store_true", help="Check instruction fusion.")
-    parser.add_argument("--dot", action="store_true", help="Create dot graph for functions.")
+    parser.add_argument("-c", "--bbexec", type=str, help="Path to the bbexec file or " \
+                                                                      "to the dir with bbexec files.")
+    parser.add_argument("--dot", action="store_true", help="Create dot graphs for functions.")
     parser.add_argument("--min_exec_count", type=int, default=1000000,
-                        help="BB should have at least mentioned amount execution count to be processed in fusion checkers.")
+                        help="Minimum number of times BB must be executed to process it with plugins.")
     parser.add_argument("-s", "--singletons", action="store_true",
                         help=f"Collect singleton basic blocks into the {XLSX_SINGLETONS_FILE_NAME}.")
     parser.add_argument("-o", "--output", type=str, default=OUT_DIR,
                         help=f"The name of the out directory. (by default: {OUT_DIR})")
+
+    parser.add_argument("--run_plugins", dest="plugins", action="store_true",
+                        help=f"Run the enabled plugins from plugins/plugins.json")
+
+    group.add_argument("--add_plugin", type=str, nargs=2, metavar=('PLUGIN_NAME', 'PLUGIN_PATH'),
+                        help="Add a custom plugin. Provide plugin name and file path.\n"
+                             "File must contain a 'run' function with a 'Node' object as input "
+                             "(see plugins/example.py).")
 
     parsed_args = parser.parse_args()
     if parsed_args.bin and not parsed_args.objdump:
@@ -105,10 +117,10 @@ def parse_arguments() -> Namespace:
 def process_function(args: Namespace,
                      function_name: str,
                      func_content: str,
-                     collect_parser: CollectFileParser,
+                     bbe_parser: BBEFileParser,
                      xlsx_for_singletons: XLSXWriter,
-                     xlsx_for_fusions: XLSXWriter) -> NoReturn:
-
+                     xlsx_for_plugins: XLSXWriter,
+                     plugins_data=None) -> NoReturn:
     if len(function_name) > MAX_FUNCTION_NAME_LENGTH:
         function_name = function_name[-MAX_FUNCTION_NAME_LENGTH:]
 
@@ -119,9 +131,9 @@ def process_function(args: Namespace,
     asm_code = parse_function_asm(func_content)
     graph = FlowGraph(asm_code)
 
-    if args.collect:
+    if bbe_parser:
         addresses = graph.get_bb_addresses()
-        graph.usage_info = collect_parser.extract_usage_info(addresses)
+        graph.usage_info = bbe_parser.extract_usage_info(addresses)
 
     graph.set_nodes_usage_info()
 
@@ -139,13 +151,12 @@ def process_function(args: Namespace,
         graph.find_singleton_bbs()
         xlsx_for_singletons.append(graph, function_name)
 
-    if args.fusion:
+    if plugins_data:
         for node in graph.nodes:
             count = node.get_execution_count()
-            if args.collect and (count == 0 or int(count) < args.min_exec_count):
+            if args.bbexec and (count == 0 or int(count) < args.min_exec_count):
                 continue
-
-            process_basic_block(node, function_name, xlsx_for_fusions)
+            run_selected_plugins(node, function_name, plugins_data, xlsx_for_plugins)
 
 
 def main(args: Namespace):
@@ -155,21 +166,48 @@ def main(args: Namespace):
     if not os.path.exists(OUT_DIR):
         os.makedirs(OUT_DIR)
 
-    asm_path = ""
     if args.bin and args.objdump:
         assert os.path.exists(args.bin), f"Cannot find binary file: {args.bin}. No such file."
         assert os.path.exists(args.objdump), f"Cannot find disassembler(objdump): {args.objdump}. No such file."
 
         asm_path = disassemble_bin_to_asm(args.bin, args.objdump)
     elif args.asm:
-        asm_path = args.asm
+        assert os.path.exists(args.asm), f"Cannot find asm file: {args.asm}"
 
-    collect_parser = None
-    if args.collect:
-        assert os.path.exists(args.collect), f"Cannot find collect file: {args.collect}. No such file."
-        collect_parser = CollectFileParser(args.collect)
-        asm_funcs = load_funcs(args.asm, args.func)
-        collect_parser.parse_collect_file(asm_funcs)
+        asm_path = args.asm
+        try:
+            shutil.copy(asm_path, os.path.join(OUT_DIR, os.path.basename(asm_path)))
+        except Exception as e:
+            print(f"Warning: Cannot copy asm file to output dir: {e}")
+
+    else:
+        plugin_name = args.add_plugin[0]
+        plugin_file = args.add_plugin[1]
+        try:
+            add_plugin(plugin_name, plugin_file)
+        except Exception as e:
+            print(str(e))
+        return 0
+
+
+    bbe_parser = None
+    if args.bbexec:
+        assert os.path.exists(args.bbexec), f"Cannot find bbexec file: {args.bbexec}. No such file or directory."
+        bbe_parser = BBEFileParser(OUT_DIR)
+        if os.path.isdir(args.bbexec):
+            bbe_files = glob.glob(os.path.join(args.bbexec, "*.bbexec"))
+            bbe_parser.parse_and_save_data(bbe_files)
+            for bbe_file in bbe_files:
+                try:
+                    shutil.copy(bbe_file, os.path.join(OUT_DIR, os.path.basename(bbe_file)))
+                except Exception as e:
+                    print(f"Warning: Cannot copy bbexec file to output dir: {e}")
+        else:
+            bbe_parser.parse_and_save_data([args.bbexec])
+            try:
+                shutil.copy(args.bbexec, os.path.join(OUT_DIR, os.path.basename(args.bbexec)))
+            except Exception as e:
+                print(f"Warning: Cannot copy bbexec file to output dir: {e}")
 
     xlsxwriter_singletons = None
     if args.singletons:
@@ -178,30 +216,30 @@ def main(args: Namespace):
         xlsxwriter_singletons.create_asm_sheet()
 
     xlsxwriter_checkers = None
-    if args.fusion:
+    plugins_data = None
+    if args.plugins:
+        plugins_data = load_plugins()
         checker_xlsx_name = f"{os.path.basename(asm_path)}.xlsx"
         checker_xlsx_path = os.path.join(OUT_DIR, checker_xlsx_name)
         xlsxwriter_checkers = XLSXWriter(checker_xlsx_path)
 
-    if args.func == "all":
-        asm_funcs = load_funcs(asm_path)
-    else:
-        asm_funcs = load_funcs(asm_path, args.func)
+    asm_funcs = load_funcs(asm_path, args.func)
 
     with alive_bar(len(asm_funcs)) as bar:
         for function_name, content in asm_funcs.items():
-            process_function(args, function_name, content, collect_parser,
-                             xlsxwriter_singletons, xlsxwriter_checkers)
+            process_function(args, function_name, content, bbe_parser,
+                             xlsxwriter_singletons, xlsxwriter_checkers,
+                             plugins_data)
             bar()
 
-    # We collect all fusion cases and dump in file at the end
-    if args.fusion:
+    if args.plugins:
         # Sort by before last column
         xlsxwriter_checkers.dump(-2)
 
+    # FIXME: US 113
     # We collect all execution info and dump in file at the end
-    if args.collect:
-        collect_parser.print_info_from_collect()
+    # if args.collect:
+    #    collect_parser.print_info_from_collect()
 
     if args.singletons:
         # Sort by the last column

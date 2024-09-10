@@ -1,5 +1,5 @@
 # *******************************************************
-# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# * Copyright (c) 2022-2024 CAST.  All rights reserved. *
 # *******************************************************
 
 import openpyxl
@@ -63,17 +63,13 @@ class XLSXWriter:
         self.__worksheet["A1"] = "Function Name"
         self.__worksheet["B1"] = "Basic Block"
         self.__worksheet["C1"] = "Fuse"
-        self.__worksheet["D1"] = "BB Execution count"
-        self.__worksheet["E1"] = "Instruction Profit"
 
         self.__worksheet.column_dimensions["A"].width = 30
         self.__worksheet.column_dimensions["B"].width = 70
         self.__worksheet.column_dimensions["C"].width = 70
-        self.__worksheet.column_dimensions["D"].width = 20
-        self.__worksheet.column_dimensions["E"].width = 20
 
         bold_font = Font(bold=True)
-        for cell in ['A1', 'B1', 'C1', 'D1', 'E1']:
+        for cell in ['A1', 'B1', 'C1']:
             self.__worksheet[cell].font = bold_font
             self.__worksheet[cell].alignment = Alignment(horizontal="center", vertical="top")
 
@@ -86,7 +82,6 @@ class XLSXWriter:
                               highlight_fuse=False) -> NoReturn:
         self.create_checkers_sheet(title)
         self.__worksheet = self.__workbook.get_sheet_by_name(title)
-        exec_count = node.get_execution_count()
 
         for current_fuse in fusions:
             for key, value in current_fuse.items():
@@ -110,8 +105,7 @@ class XLSXWriter:
                     content = rich_string
 
                 input_out = f"{key} \n{value}"
-                insn_profit = int(int(exec_count) / len(node))
-                row = [func_name, content, input_out, int(exec_count), insn_profit]
+                row = [func_name, content, input_out]
                 self.__worksheet.__rows.append(row)
 
     def dump(self, row_id: int) -> NoReturn:

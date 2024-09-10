@@ -1,4 +1,6 @@
-#!/usr/bin/python
+# *******************************************************
+# * Copyright (c) 2022-2024 CAST.  All rights reserved. *
+# *******************************************************
 
 # Now that we have specific instruction counts, group them.
 #

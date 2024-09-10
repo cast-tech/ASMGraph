@@ -1,0 +1,19 @@
+/*******************************************************
+ * Copyright (c) 2022-2024 CAST.  All rights reserved. *
+ *******************************************************/
+
+@import url("windows.css");
+@import url("buttons.css");
+@import url("labels.css");
+@import url("entries.css");
+
+
+.xdot-widget {
+    background-color: white;
+    border-left: 2px solid #000000;
+}
+
+selection {
+    background-color: @selected_bd_color;
+    color: black;
+}

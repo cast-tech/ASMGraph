@@ -1,5 +1,5 @@
 # *******************************************************
-# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# * Copyright (c) 2022-2024 CAST.  All rights reserved. *
 # *******************************************************
 
 # This file tends to check instruction fusion on BB.
@@ -7,9 +7,9 @@
 
 import re
 from typing import List, NoReturn
-from .graph import Node
-from .opcodes import loads, stores, jump_instructions
-from .instruction import Instruction, Operand
+from src.graph import Node
+from src.opcodes import loads, stores, jump_instructions
+from src.instruction import Instruction, Operand
 
 
 def check_extend(basic_block: Node, n: int) -> List[dict]:
@@ -267,55 +267,3 @@ def get_register_from_address(address: str) -> str:
 def is_store_to_stack(address: str) -> bool:
     return get_register_from_address(address) == "sp"
 
-
-def process_basic_block(basic_block: Node, function_name: str, xlsx_for_fusions) -> NoReturn:
-
-    fuse = check_extend(basic_block, 48)
-    if fuse:
-        title = "Extend HI to DI"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)
-
-    fuse = check_extend(basic_block, 32)
-    if fuse:
-        title = "Extend SI to DI"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)
-
-    fuse = check_semi_extend_si_di(basic_block, 32)
-    if fuse:
-        title = "Semi extend SI to DI (less than 32)"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)
-
-    fuse = check_integer_indexed_loads(basic_block)
-    if fuse:
-        title = "Integer indexed loads"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)
-
-    fuse = check_load_with_preincrement(basic_block)
-    if fuse:
-        title = "Load with preincrement"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)
-
-    fuse = check_load_from_const_address(basic_block)
-    if fuse:
-        title = "Loads from constant addresses"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)
-
-    fuse = check_address_and_const_formation(basic_block)
-    if fuse:
-        title = "Address and constant formation"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)
-
-    fuse = check_double_constant_formation(basic_block)
-    if fuse:
-        title = "Double address and constant formation"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)
-
-    fuse = check_lui_add_shnadd_ld(basic_block)
-    if fuse:
-        title = "lui + add + shNadd + ld"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse)
-
-    fuse = check_two_stores(basic_block)
-    if fuse:
-        title = "Two stores"
-        xlsx_for_fusions.append_checker_result(title, function_name, basic_block, fuse, True)

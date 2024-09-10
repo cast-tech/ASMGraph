@@ -1,0 +1,175 @@
+diff --git a/contrib/plugins/Makefile b/contrib/plugins/Makefile
+index 0b64d2c1e3..c94481dc66 100644
+--- a/contrib/plugins/Makefile
++++ b/contrib/plugins/Makefile
+@@ -17,6 +17,7 @@ NAMES += execlog
+ NAMES += hotblocks
+ NAMES += hotpages
+ NAMES += howvec
++NAMES += bbexec
+ 
+ # The lockstep example communicates using unix sockets,
+ # and can't be easily made to work on windows.
+
+diff --git a/contrib/plugins/bbexec.c b/contrib/plugins/bbexec.c
+new file mode 100644
+index 0000000..778f83c
+--- /dev/null
++++ b/./contrib/plugins/bbexec.c
+@@ -0,0 +1,156 @@
++#include <inttypes.h>
++#include <assert.h>
++#include <stdlib.h>
++#include <inttypes.h>
++#include <string.h>
++#include <unistd.h>
++#include <stdio.h>
++#include <glib.h>
++
++#include <qemu-plugin.h>
++
++QEMU_PLUGIN_EXPORT int qemu_plugin_version = QEMU_PLUGIN_VERSION;
++
++static GMutex lock;
++static GHashTable *code_blocks;
++
++FILE *outfile = NULL;
++
++typedef struct BlockStats {
++    uint64_t base_addr;
++    uint64_t trans_count;
++    uint64_t insns_count;
++    struct qemu_plugin_scoreboard* exec_count;
++    const char* func_symbol;
++    struct BlockStats *next;
++} BlockStats;
++
++
++static gint compare_insn_count(gconstpointer a, gconstpointer b) {
++    const BlockStats* block_a = (const BlockStats*) a;
++    const BlockStats* block_b = (const BlockStats*) b;
++    uint64_t exec_count_a =
++        qemu_plugin_u64_sum(qemu_plugin_scoreboard_u64(block_a->exec_count));
++    uint64_t exec_count_b =
++        qemu_plugin_u64_sum(qemu_plugin_scoreboard_u64(block_b->exec_count));
++    return (exec_count_a * block_a->insns_count) > (exec_count_b * block_b->insns_count) ? -1 : 1;
++
++}
++
++
++static void translate_vcpu_tb(qemu_plugin_id_t id, struct qemu_plugin_tb* tb) {
++    uint64_t start_addr = qemu_plugin_tb_vaddr(tb);
++    size_t insn_count = qemu_plugin_tb_n_insns(tb);
++    uint64_t block_hash = start_addr;
++
++    g_mutex_lock(&lock);
++    BlockStats* block_stat = (BlockStats*) g_hash_table_lookup(code_blocks, (gconstpointer) block_hash);
++    if (block_stat) {
++        block_stat->trans_count++;
++
++    } else {
++        block_stat = g_new0(BlockStats, 1);
++        block_stat->base_addr = start_addr;
++        block_stat->trans_count = 1;
++        block_stat->insns_count = insn_count;
++        block_stat->next = NULL;
++        block_stat->func_symbol = qemu_plugin_insn_symbol(qemu_plugin_tb_get_insn(tb, 0));
++        block_stat->exec_count = qemu_plugin_scoreboard_new(sizeof(uint64_t));
++
++        g_hash_table_insert(code_blocks, (gpointer) block_hash, (gpointer) block_stat);
++    }
++
++    g_mutex_unlock(&lock);
++
++    qemu_plugin_register_vcpu_tb_exec_inline_per_vcpu(tb, QEMU_PLUGIN_INLINE_ADD_U64,
++                                                      qemu_plugin_scoreboard_u64(block_stat->exec_count),
++                                                      1);
++
++}
++
++
++static void cleanup_plugin(qemu_plugin_id_t id, void *p) {
++    g_mutex_lock(&lock);
++
++    fprintf(outfile, "### Execution Summary\n\n");
++    fprintf(outfile, "Total Translation Blocks: %d\n\n",
++            g_hash_table_size(code_blocks));
++    fprintf(outfile, "### Hot Blocks\n\n");
++
++    GList* block_list = g_hash_table_get_values(code_blocks);
++    GList* it = g_list_sort(block_list, compare_insn_count);
++
++    uint64_t total_instructions_executed = 0;
++
++    if (it) {
++        for (GList *entry = it; entry->next;  entry = entry->next) {
++            BlockStats *rec = (BlockStats*)entry->data;
++
++            uint64_t exec_count = qemu_plugin_u64_sum(qemu_plugin_scoreboard_u64(rec->exec_count));
++
++            total_instructions_executed += rec->insns_count * exec_count;
++        }
++
++        for (GList *entry = it; entry->next; entry = entry->next) {
++            BlockStats *rec = (BlockStats *) entry->data;
++
++            uint64_t exec_count = qemu_plugin_u64_sum(qemu_plugin_scoreboard_u64(rec->exec_count));
++
++            uint64_t instructions_executed = rec->insns_count * exec_count;
++            fprintf(outfile,
++                    "0x%016"PRIx64" %"PRId64" %.4lf%% %s\n",
++                    rec->base_addr,
++                    instructions_executed,
++                    ((double)instructions_executed * 100)/total_instructions_executed,
++                    rec->func_symbol ? rec->func_symbol : "-");
++
++            // Cleanup exec_count
++            qemu_plugin_scoreboard_free(rec->exec_count);
++        }
++
++        g_list_free(it);
++    }
++
++    fprintf(outfile, "\n\n### Overall Statistics\n\n");
++    fprintf(outfile, "  Total Dynamic Instructions:         %"PRId64"\n",
++                           total_instructions_executed);
++    fprintf(outfile, "  Total Translation Blocks Executed:  %d\n",
++                           g_hash_table_size(code_blocks));
++
++    g_mutex_unlock(&lock);
++    fflush(outfile);
++}
++
++
++static void initialize_plugin(void) {
++    code_blocks = g_hash_table_new(NULL, g_direct_equal);
++}
++
++QEMU_PLUGIN_EXPORT
++int qemu_plugin_install(qemu_plugin_id_t id,
++		        const qemu_info_t *info,
++                        int argc, char **argv) {
++
++    char current_dir[PATH_MAX];
++    char final_filename[PATH_MAX + 256];
++
++    if (getcwd(current_dir, PATH_MAX) == NULL) {
++        fprintf(stderr, "getcwd() error.");
++	return -1;
++    }
++
++    sprintf(final_filename, "%s/%d.bbexec", current_dir, getpid());
++    outfile = fopen(final_filename, "w");
++    if (outfile == NULL) {
++	fprintf(stderr, "fopen() error.");
++	return -1;
++    }
++
++    initialize_plugin();
++
++    qemu_plugin_register_vcpu_tb_trans_cb(id, translate_vcpu_tb);
++    qemu_plugin_register_atexit_cb(id, cleanup_plugin, NULL);
++
++    return 0;
++}
++

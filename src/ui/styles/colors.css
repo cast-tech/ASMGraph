@@ -1,0 +1,13 @@
+/*******************************************************
+ * Copyright (c) 2022-2024 CAST.  All rights reserved. *
+ *******************************************************/
+
+@define-color background #353839;
+@define-color base_border_color #676464;
+@define-color selected_bd_color #3e6187;
+@define-color text_color #D3D4D4;
+@define-color error_hint_color #b22323;
+@define-color label-default_colour #bababa;
+@define-color footer_background #282f2f;
+@define-color border_color #292a2a;
+@define-color content_box #393c3d;

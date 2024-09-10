@@ -1,0 +1,116 @@
+/*******************************************************
+ * Copyright (c) 2022-2024 CAST.  All rights reserved. *
+ *******************************************************/
+
+@import url("colors.css");
+
+/* TODO: Disable red border color of selected button. */
+check, radio, .button-style-1 {
+    background: transparent;
+    color: @text_color;
+    border: 2px solid @base_border_color;
+    box-shadow: none;
+    margin-left: 10px;
+}
+
+radio:focus, .button-style-1:active, .button-style-1:hover {
+    background: transparent;
+    color: @text_color;
+    border: 2px solid @selected_bd_color;
+    box-shadow: none;
+}
+
+.button-style-2 {
+    background: transparent;
+    color: @text_color;
+    border: none;
+    box-shadow: none;
+}
+
+.button-style-2:active, .button-style-2:hover {
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
+
+.button-style-2:focus label, .button-style-2:hover label {
+    color: @selected_bd_color;
+    box-shadow: none;
+    padding: 0;
+}
+
+button {
+    border: none;
+    outline: none;
+    box-shadow: none;
+    color: @label-default_colour;
+    margin-top: 15px;
+}
+
+.checkbox {
+    margin-left: -8px;
+}
+
+.new-project-btn {
+    color: @text_color;
+    margin-left: 10px;
+    background: transparent;
+    border: 2px solid @base_border_color;
+    outline: none;
+    box-shadow: none;
+}
+
+.new_project-btn:focus {
+    border: 2px solid @base_border_color;
+}
+
+.new_project-btn:active {
+    border: 2px solid @selected_bd_color;
+    outline: none;
+    box-shadow: none;
+}
+
+.name_btn, .exec_btn {
+    min-width: 100px;
+}
+
+.function_name {
+    background: transparent;
+    color: @text_color;
+    border: none;
+    box-shadow: none;
+    margin-bottom: -15px;
+}
+
+.selected_btn {
+    background: rgba(73, 133, 171, 0.31);
+    color: @text_color;
+    border: none;
+    box-shadow: none;
+    margin-bottom: -15px;
+}
+
+.function_name:hover, .function_name:focus,
+.project_name:hover, .project_name:focus{
+    background-color: rgba(73, 133, 171, 0.31);
+    color: #ffffff;
+}
+
+.project_name {
+    background: transparent;
+    color: @text_color;
+    border: none;
+    box-shadow: none;
+    margin-bottom: -15px;
+    margin-left: 20px;
+}
+
+.summary_info {
+    margin: 15px 10px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.compare-btn {
+    min-width: 700px;
+}
