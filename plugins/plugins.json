@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Extend HI to DI",
+    "enabled": false,
+    "function": "check_extend",
+    "args": [
+      48
+    ]
+  },
+  {
+    "name": "Extend SI to DI",
+    "enabled": false,
+    "function": "check_extend",
+    "args": [
+      32
+    ]
+  },
+  {
+    "name": "Semi extend SI to DI (less than 32)",
+    "enabled": false,
+    "function": "check_semi_extend_si_di",
+    "args": [
+      32
+    ]
+  },
+  {
+    "name": "Integer indexed loads",
+    "enabled": false,
+    "function": "check_integer_indexed_loads",
+    "args": []
+  },
+  {
+    "name": "Load with preincrement",
+    "enabled": false,
+    "function": "check_load_with_preincrement",
+    "args": []
+  },
+  {
+    "name": "Loads from constant addresses",
+    "enabled": false,
+    "function": "check_load_from_const_address",
+    "args": []
+  },
+  {
+    "name": "Address and constant formation",
+    "enabled": false,
+    "function": "check_address_and_const_formation",
+    "args": []
+  },
+  {
+    "name": "Double address and constant formation",
+    "enabled": false,
+    "function": "check_double_constant_formation",
+    "args": []
+  },
+  {
+    "name": "lui + add + shNadd + ld",
+    "enabled": false,
+    "function": "check_lui_add_shnadd_ld",
+    "args": []
+  },
+  {
+    "name": "Two stores",
+    "enabled": false,
+    "function": "check_two_stores",
+    "args": []
+  }
+]

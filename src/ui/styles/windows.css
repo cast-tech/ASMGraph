@@ -1,0 +1,94 @@
+/*******************************************************
+ * Copyright (c) 2022-2024 CAST.  All rights reserved. *
+ *******************************************************/
+
+@import url("colors.css");
+
+window {
+    background-color: @background;
+    min-width: 500px;
+}
+
+.main-box {
+    padding: 20px;
+}
+
+.radio-button-box {
+    margin: 15px 0 15px -8px;
+}
+
+.vis-box {
+    padding: 0;
+}
+
+.content-box, .spec-box {
+    border-left: 1px solid @border_color;
+    padding: 0 20px;
+    background: @content_box;
+}
+
+.inner-box-bin {
+    margin-top: 15px;
+}
+
+.action-box {
+    margin: 10px 0;
+}
+
+.footer {
+    padding: 0 20px 20px 0;
+    border-top: 1px solid @border_color;
+}
+
+.logo {
+    padding: 16px 10px 0 0;
+}
+
+.graph_vis_left_panel {
+    padding: 0 10px;
+    min-width: 200px;
+}
+
+.dot_files_box {
+    padding: 0;
+}
+
+.file_box, .run_plugins {
+    background-color: @background;
+    padding: 10px 0;
+    border: none;
+    box-shadow: none;
+    min-width: 50px;
+}
+
+.visualizer-divider {
+    border-left: 1px solid rgba(123, 123, 124, 0.15);
+}
+
+.menu_item {
+    margin-left: -34px;
+}
+
+.dot_files {
+    padding: 0 20px 20px 0;
+}
+
+.run_plugins_menu_item {
+    margin-left: -14px;
+    padding: 5px 0;
+}
+
+.plugins_submenu {
+    border-top: 1px solid rgba(41, 42, 42, 0.53);
+}
+
+.new_plugin_dialog {
+    padding: 0 20px 20px  20px;
+}
+
+.deactivate_comparison {
+    font-size: 12px;
+    font-style: italic;
+    background-color: rgba(211, 211, 211, 0.05);
+    border-radius: 6px;
+}

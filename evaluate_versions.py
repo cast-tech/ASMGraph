@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # *******************************************************
-# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# * Copyright (c) 2022-2024 CAST.  All rights reserved. *
 # *******************************************************
 
 
@@ -26,50 +26,45 @@ XLSX_RESULT_FILE_NAME = "evaluation_result.xlsx"
 
 def parse_args() -> Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ff", dest="first_collect_file", type=str, default=None,
+    parser.add_argument("--ff", dest="first_bbe_file", type=str, default=None,
                         help="Path to first hot block file")
-    parser.add_argument("--sf", dest="second_collect_file", type=str, default=None,
+    parser.add_argument("--sf", dest="second_bbe_file", type=str, default=None,
                         help="Path to second hot block file")
-    parser.add_argument("--fd", dest="first_collects_dir", type=str, default=None,
-                        help="Path to directory with first hot block files (with .collect files)")
-    parser.add_argument("--sd", dest="second_collects_dir", type=str, default=None,
-                        help="Path to directory with second hot block files (with .collect files)")
+    parser.add_argument("--fd", dest="first_bbes_dir", type=str, default=None,
+                        help="Path to directory with first hot block files (with .bbeexec files)")
+    parser.add_argument("--sd", dest="second_bbes_dir", type=str, default=None,
+                        help="Path to directory with second hot block files (with .bbexec files)")
     parser.add_argument("--all", dest="create_functions_diff_sheet", action="store_true",
                         help="Also create a functions comparisons table.")
-
+    parser.add_argument("-o", dest="output_file", type=str, default=None,
+                        help=f"Path to the output file (by default {os.path.join(CUR_DIR, XLSX_RESULT_FILE_NAME)})")
     args = parser.parse_args()
 
-    if not args.first_collects_dir and not args.first_collect_file:
+    if not args.first_bbes_dir and not args.first_bbe_file:
         parser.error('--ff or --fd is required')
 
-    if not args.second_collects_dir and not args.second_collect_file:
+    if not args.second_bbes_dir and not args.second_bbe_file:
         parser.error('--sf or --sd is required')
 
-    if args.first_collect_file and not args.second_collect_file or \
-       not args.first_collect_file and args.second_collect_file:
+    if args.first_bbe_file and not args.second_bbe_file or \
+       not args.first_bbe_file and args.second_bbe_file:
         parser.error("First and second argument must be a file, please use"
                      " '--ff' and '--sf' options.")
 
-    if args.first_collects_dir and not args.second_collects_dir or \
-       not args.first_collects_dir and args.second_collects_dir:
+    if args.first_bbes_dir and not args.second_bbes_dir or \
+       not args.first_bbes_dir and args.second_bbes_dir:
         parser.error("First or second argument must be a directory, please use"
                      " '--fd' and '--sd' options.")
 
     return args
 
 
-def get_functions_dyn_inst_count(collect_file: str) -> [Dict[str, Dict]]:
+def get_functions_dyn_inst_count(bbe_file: str) -> [Dict[str, Dict]]:
     func_name_and_dyn_inst_count = {}
 
-    with open(collect_file, "r") as block_fp:
-
+    with open(bbe_file, "r") as block_fp:
         for line in block_fp:
             line = line.strip()
-            if "translation blocks" in line or "(by dynamic instructions)" in line:
-                continue
-
-            if "by dynamic invocations" in line:
-                break
 
             if not line.startswith("0x"):
                 continue
@@ -87,16 +82,15 @@ def get_functions_dyn_inst_count(collect_file: str) -> [Dict[str, Dict]]:
                     func_name_and_dyn_inst_count[function_name] = int(block_info[1])
 
     sort_by_exec_count = sorted(func_name_and_dyn_inst_count.items(), key=lambda x: x[1], reverse=True)
-
     return dict(sort_by_exec_count)
 
 
-def get_cmp_result(first_collects_func_info: Dict[str, Dict],
-                   second_collects_func_info: Dict[str, Dict]) -> Dict[str, List]:
+def get_cmp_result(first_bbes_func_info: Dict[str, Dict],
+                   second_bbes_func_info: Dict[str, Dict]) -> Dict[str, List]:
     result = {}
 
-    for first_func_name, first_func_exec_count in first_collects_func_info.items():
-        same_second_func = second_collects_func_info.get(first_func_name, -1)
+    for first_func_name, first_func_exec_count in first_bbes_func_info.items():
+        same_second_func = second_bbes_func_info.get(first_func_name, -1)
         result[first_func_name] = [first_func_exec_count, same_second_func]
 
     return result
@@ -131,7 +125,7 @@ def prepare_header(workbook: xlsxwriter.Workbook,
     return ws
 
 
-def create_diff_for_single_collect(workbook: xlsxwriter.Workbook,
+def create_diff_for_single_bbe(workbook: xlsxwriter.Workbook,
                                    file_name: str,
                                    blocks: Dict[str, List]) -> NoReturn:
 
@@ -202,39 +196,37 @@ def create_general_diff(workbook: xlsxwriter.Workbook,
 
 
 def get_files_from_dir(directory: str) -> List[str]:
-
-    if os.path.exists(directory):
-        collects = sorted(glob.glob(os.path.join(directory, "*.collect")))
-        return collects
+    if os.path.isdir(directory):
+        bbes = sorted(glob.glob(os.path.join(directory, "*.bbexec")))
+        return bbes
     else:
         assert f"Cannot find directory: {directory}"
 
 
-def get_collect_files(args: Namespace) -> (List[str], List[str]):
-    first_collects = []
-    second_collects = []
+def get_bbe_files(args: Namespace) -> (List[str], List[str]):
+    first_bbes = []
+    second_bbes = []
 
-    if args.first_collects_dir:
-        first_collects = get_files_from_dir(args.first_collects_dir)
+    if args.first_bbes_dir:
+        first_bbes = get_files_from_dir(args.first_bbes_dir)
 
-    if args.second_collects_dir:
-        second_collects = get_files_from_dir(args.second_collects_dir)
+    if args.second_bbes_dir:
+        second_bbes = get_files_from_dir(args.second_bbes_dir)
 
-    if args.first_collect_file:
-        assert (os.path.isfile(args.first_collect_file)), \
-            f"Cannot find first file: {args.first_collect_file}"
-        first_collects = [args.first_collect_file]
+    if args.first_bbe_file:
+        assert (os.path.isfile(args.first_bbe_file)), \
+            f"Cannot find first file: {args.first_bbe_file}"
+        first_bbes = [args.first_bbe_file]
 
-    if args.second_collect_file:
-        assert (os.path.isfile(args.second_collect_file)), \
-            f"Cannot find second file: {args.second_collect_file}"
-        second_collects = [args.second_collect_file]
+    if args.second_bbe_file:
+        assert (os.path.isfile(args.second_bbe_file)), \
+            f"Cannot find second file: {args.second_bbe_file}"
+        second_bbes = [args.second_bbe_file]
 
-    return first_collects, second_collects
+    return first_bbes, second_bbes
 
 
 def get_dyn_inst_count(file_path: str) -> int:
-
     with open(file_path, 'r') as f:
         f.seek(0, os.SEEK_END)
         fsize = f.tell()
@@ -254,45 +246,49 @@ def get_dyn_inst_count(file_path: str) -> int:
             return int(((lines[2]).split(':')[1]))
 
 
-def compute_and_get_diff(first_collect: str, second_collect: str) -> Dict[str, List]:
+def compute_and_get_diff(first_bbe: str, second_bbe: str) -> Dict[str, List]:
 
-    funcs_dyn_count_from_first_collect = get_functions_dyn_inst_count(first_collect)
-    funcs_dyn_count_from_second_collect = get_functions_dyn_inst_count(second_collect)
-    diff_result = get_cmp_result(funcs_dyn_count_from_first_collect,
-                                 funcs_dyn_count_from_second_collect)
+    funcs_dyn_count_from_first_bbe = get_functions_dyn_inst_count(first_bbe)
+    funcs_dyn_count_from_second_bbe = get_functions_dyn_inst_count(second_bbe)
+    diff_result = get_cmp_result(funcs_dyn_count_from_first_bbe,
+                                 funcs_dyn_count_from_second_bbe)
 
     return diff_result
 
 
 def main():
-
     args = parse_args()
+    first_bbes, second_bbes = get_bbe_files(args)
 
-    first_collects, second_collects = get_collect_files(args)
-    file_name = os.path.join(CUR_DIR, XLSX_RESULT_FILE_NAME)
+    if args.output_file:
+        file_name = args.output_file
+    else:
+        file_name = os.path.join(CUR_DIR, XLSX_RESULT_FILE_NAME)
+
     workbook = xlsxwriter.Workbook(file_name)
 
-    for idx, first_collect in enumerate(first_collects):
-        second_collect = None
+    for idx, first_bbe in enumerate(first_bbes):
+        second_bbe = None
         try:
-            for collect in second_collects:
-                if os.path.basename(collect) == os.path.basename(first_collect):
-                    second_collect = collect
+            for bbe in second_bbes:
+                if os.path.basename(bbe) == os.path.basename(first_bbe):
+                    second_bbe = bbe
                     break
-            if second_collect:
-                bench_name = os.path.basename((first_collect.split(".collect"))[0])
-                first_dyn_inst_count = get_dyn_inst_count(first_collect)
-                second_dyn_inst_count = get_dyn_inst_count(second_collect)
 
-                if (args.first_collect_file and args.second_collect_file) or args.create_functions_diff_sheet:
-                    result = compute_and_get_diff(first_collect, second_collect)
-                    create_diff_for_single_collect(workbook, bench_name, result)
+            if second_bbe:
+                bench_name = os.path.basename((first_bbe.split(".bbexec"))[0])
+                first_dyn_inst_count = get_dyn_inst_count(first_bbe)
+                second_dyn_inst_count = get_dyn_inst_count(second_bbe)
 
-                if args.first_collects_dir and args.second_collects_dir:
+                if (args.first_bbe_file and args.second_bbe_file) or args.create_functions_diff_sheet:
+                    result = compute_and_get_diff(first_bbe, second_bbe)
+                    create_diff_for_single_bbe(workbook, bench_name, result)
+
+                if args.first_bbes_dir and args.second_bbes_dir:
                     create_general_diff(workbook, bench_name, first_dyn_inst_count,
                                         second_dyn_inst_count, idx)
             else:
-                print(f"{first_collect} file is not found.")
+                print(f"{first_bbe} file is not found.")
         except ValueError as ex:
             print(str(ex))
 

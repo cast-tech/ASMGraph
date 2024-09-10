@@ -1,10 +1,14 @@
 # *******************************************************
-# * Copyright (c) 2022-2023 CAST.  All rights reserved. *
+# * Copyright (c) 2022-2024 CAST.  All rights reserved. *
 # *******************************************************
 
 import signal
+from functools import partial
+
 import pydot
 from typing import List, Dict, NoReturn, Any
+
+from .funcs_black_list import append_function_to_blacklist
 from .opcodes import loads, stores, branch_instructions, jump_instructions
 from .instruction import Instruction
 
@@ -294,7 +298,7 @@ class FlowGraph:
     def draw_graph(self, out_dot_file: str) -> NoReturn:
         # In some cases DOT lib hang over,
         # Processing each function should not be longer than 10 minutes
-        signal.signal(signal.SIGALRM, self.__handler)
+        signal.signal(signal.SIGALRM, partial(self.__handler, out_dot_file))
         signal.alarm(600)
 
         if self.usage_info:
@@ -312,8 +316,10 @@ class FlowGraph:
         signal.alarm(0)
         signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
-    def __handler(self, signum: int, frame: Any) -> TimeoutError:
-        raise TimeoutError("Function time out!!!")
+    @staticmethod
+    def __handler(func_name, signum: int, frame: Any) -> None:
+        append_function_to_blacklist(func_name)
+        raise TimeoutError(f"Function {func_name} time out!!!")
 
     def __str__(self):
         result = ''
